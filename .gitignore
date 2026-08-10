@@ -1,0 +1,15 @@
+.env
+.pytest_cache/
+.ruff_cache/
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.coverage
+htmlcov/
+
+.watsonx_version/
+
+# Local runtime state
+.data/
+n8n/credentials/local.json
