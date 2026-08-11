@@ -1,0 +1,45 @@
+# Application stack — Phase 2 private-platform slice.
+# GreenMail only: gateway, ticketing, and ticket PostgreSQL arrive in later phases.
+# Joins helpdesk_private created by the Dify stack (start Dify first).
+
+name: helpdesk-app
+
+services:
+  # Synthetic IMAP/SMTP/API mail server for local Phase 2+ email tests.
+  greenmail:
+    image: greenmail/standalone:2.1.11
+    restart: unless-stopped
+    environment:
+      # Users: support@example.test / support-pass, employee@example.test / employee-pass
+      GREENMAIL_OPTS: >-
+        -Dgreenmail.setup.test.all
+        -Dgreenmail.hostname=0.0.0.0
+        -Dgreenmail.users=support:support-pass@example.test,employee:employee-pass@example.test
+        -Dgreenmail.verbose
+    # Loopback-only publish for local IMAP/SMTP/API tests (SEC-7).
+    ports:
+      - "127.0.0.1:${GREENMAIL_SMTP_PORT:-3025}:3025"
+      - "127.0.0.1:${GREENMAIL_IMAP_PORT:-3143}:3143"
+      - "127.0.0.1:${GREENMAIL_API_PORT:-8081}:8080"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          bash -ec 'exec 3<>/dev/tcp/127.0.0.1/8080;
+          printf "GET /api/service/readiness HTTP/1.0\r\nHost: localhost\r\n\r\n" >&3;
+          IFS=" " read -r _ status _ <&3;
+          test "$$status" = 200'
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 15s
+    networks:
+      - default
+      - helpdesk_private
+
+networks:
+  default:
+    name: helpdesk-app_default
+  helpdesk_private:
+    name: helpdesk_private
+    external: true

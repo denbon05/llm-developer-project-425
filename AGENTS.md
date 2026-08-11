@@ -34,3 +34,6 @@
 - Public interfaces: explicit types (see requirements FR-11)
 - App frameworks and runtime architecture: follow `docs/architecture.md` when
   named; do not invent them here
+- Commits: Conventional Commits — `feat|fix|docs|chore|test|refactor|ci(scope): …`
+  (scope optional, e.g. `feat(ticketing): …`). Prefer one short subject line;
+  explain why in the body when useful.

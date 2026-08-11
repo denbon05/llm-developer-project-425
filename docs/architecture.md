@@ -111,10 +111,14 @@ schemas.
 Compose definitions live at root `compose.yml` (application stack: gateway,
 ticketing, ticket PostgreSQL, GreenMail) and `dify/compose.yml` (Dify platform:
 Dify, its PostgreSQL, Weaviate, Ollama). Each file carries a short top comment
-naming the stack. The root `Makefile` wraps both (for example
-`make dify-stack-up` and an application up target). Secret-free Dify App DSL
-exports live under `dify/apps/` — one YAML export per Studio App (email
-helpdesk workflow and ticket lifecycle workflow).
+naming the stack. The Dify project creates the shared Docker network
+`helpdesk_private`; the application project joins it as external (start Dify
+first). The root `Makefile` wraps both with foreground
+`make dify-stack-up` / `make app-stack-up` (two-terminal operator workflow).
+Secret-free Dify App DSL exports live under `dify/apps/` after UI authoring
+(FR-9) — one YAML export per Studio App (email helpdesk in Phase 5; ticket
+lifecycle in Phase 8). Phase 2 proves Start→End in the Studio UI without a
+committed handwritten DSL file.
 
 ## Minimal Dify contract
 
@@ -287,9 +291,10 @@ validity and records `system` messages for automated changes.
 - The reviewed, secret-free Dify exports reconstruct workflow structure.
   Provider credentials stay in Dify's encrypted store; other secrets use
   gitignored local files with committed examples only.
-- Health checks and minimal Make/Compose commands cover bootstrap, start, stop,
-  logs, tests, seed/ingest, and restore. Destructive volume operations require
-  an explicit warning.
+- Minimal Make targets cover env bootstrap and foreground stack up/down. Use
+  Compose directly for logs/ps; tests, seed/ingest, and restore arrive in later
+  phases. Destructive volume deletion (`docker compose … down -v`) is manual
+  and irreversible — document the risk before using it.
 
 ## Proposed repository tree
 
@@ -305,6 +310,7 @@ phase; co-locate cases and rubrics when that work starts.
 │   ├── requirements.md
 │   ├── architecture.md
 │   ├── roadmap.md
+│   ├── setup.md
 │   └── adr/
 ├── knowledge_base/
 ├── dify/

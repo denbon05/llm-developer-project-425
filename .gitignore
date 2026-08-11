@@ -1,4 +1,5 @@
 .env
+dify/.env
 .pytest_cache/
 .ruff_cache/
 .venv/
@@ -12,4 +13,9 @@ htmlcov/
 
 # Local runtime state
 .data/
-n8n/credentials/local.json
+# Named volumes are used; keep these ignores if bind-mount dirs appear locally.
+dify/volumes/app/
+dify/volumes/db/
+dify/volumes/redis/
+dify/volumes/weaviate/
+dify/volumes/plugin_daemon/

@@ -10,10 +10,17 @@ evidence is insufficient.
 
 ## Status
 
-Phase 1 is documentation only: the domain, requirements, interfaces, trust
-model, and delivery phases are defined. The runtime setup, Dify workflow,
-containers, ticketing application, email gateway, and knowledge corpus are not
-implemented yet.
+Phase 2 private platform verified: pinned Dify + GreenMail Compose stacks on
+`helpdesk_private`, Make up/down, persistent Weaviate/Dify Postgres, resource-
+limited Ollama, and a Studio Start→End workflow proof. Setup:
+[docs/setup.md](docs/setup.md). Ticketing, email gateway, knowledge corpus, and
+the full helpdesk workflow are later phases.
+
+```bash
+make bootstrap
+make dify-stack-up     # terminal 1
+make app-stack-up      # terminal 2
+```
 
 ## Fixed v1 scope
 
@@ -49,3 +56,4 @@ model.
 - [Requirements and acceptance criteria](docs/requirements.md)
 - [Architecture and interfaces](docs/architecture.md)
 - [Bounded delivery roadmap](docs/roadmap.md)
+- [Platform setup](docs/setup.md)
