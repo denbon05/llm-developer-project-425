@@ -17,8 +17,9 @@ ends with a verification gate and a short learning checkpoint.
 - **Verification gate:** all source decisions are traceable; the documents are
   concise, non-duplicative, and mutually consistent; calibrated parameters
   remain explicitly provisional where noted.
-- **Learning checkpoint:** explain the actors, deterministic routing rules,
-  trust seams, module ownership, and why Dify remains replaceable.
+- **Learning checkpoint:** explain the participants/roles, deterministic
+  routing rules, trust seams, module ownership, and why Dify remains
+  replaceable.
 
 ## Phase 2 — Prove the private platform
 
@@ -37,13 +38,18 @@ ends with a verification gate and a short learning checkpoint.
 ## Phase 3 — Build the ticketing slice
 
 - **Owner:** bounded ticketing agent.
-- **Scope:** implement ticket PostgreSQL, migrations, the private REST and
-  narrow MCP contracts, capability-derived employee scope, one-writer message
-  ownership, persistence-time masking, idempotency, and the ticket state
-  machine.
-- **Verification gate:** contract tests at REST and MCP seams cover categories,
-  actors, scoped list/follow-up behavior, reconciliation, idempotency,
-  lifecycle, operator response, reopen, and auto-close.
+- **Scope:** implement helpdesk PostgreSQL with the MVP schema (`tickets` and
+  `messages`), migrations, private HTTP
+  (`POST /v1/tickets/escalate-stale`) and MCP (`create-ticket`,
+  `list-my-tickets`, `append-message`), `user_id` as an MCP tool argument
+  (synthetic sender email), persistence-time text masking, and escalate as
+  status-only. No outbox/quarantine tables. No email gateway or Dify
+  workflows in this phase.
+- **Verification gate:** contract tests at HTTP and MCP seams cover categories
+  (including `other`), user/agent roles, scoped list, create (`text` only),
+  append for chat history, agent append with usage on a ticket (bumps `updated_at`, not
+  ticket text or status), masking, and HTTP escalate-stale (inactivity on
+  `updated_at`).
 - **Learning checkpoint:** explain how one deep ticketing interface protects
   business invariants across two adapters.
 
@@ -52,14 +58,18 @@ ends with a verification gate and a short learning checkpoint.
 - **Owner:** bounded email-gateway agent.
 - **Scope:** connect GreenMail to the gateway, the privacy module, the
   pre-Dify toxicity/abuse word-list gate, a fake of the versioned Dify
-  interface, ticketing inbox/outbox operations, and SMTP reply delivery with a
-  configurable one-minute default poll.
+  interface, ticketing MCP (`create-ticket` / `list-my-tickets` /
+  `append-message`) and escalate HTTP, direct SMTP reply delivery,
+  and a configurable one-minute default poll (mailbox `\Seen` after success;
+  best-effort, at-least-once retries). No resolve-scope,
+  record-usage, or verify/reconcile HTTP.
 - **Verification gate:** deterministic GreenMail tests prove normalization,
   attachment exclusion, limits, toxicity static replies without a Dify call,
-  pre-Dify masking, exactly-once internal effects, restart recovery, and the
-  documented SMTP duplicate window.
-- **Learning checkpoint:** distinguish inbox idempotency from receiver-visible
-  email delivery guarantees.
+  pre-Dify one-way masking, restart recovery, and the documented SMTP
+  duplicate window.
+- **Learning checkpoint:** distinguish mailbox processing hints (`\Seen`) from
+  receiver-visible email delivery guarantees and at-least-once internal
+  ticket/message effects.
 
 ## Phase 5 — Replace the fake with Dify
 
@@ -68,7 +78,8 @@ ends with a verification gate and a short learning checkpoint.
   expose the agreed input/output contract over Workflow SSE, capture run/usage
   metadata, and export reviewed secret-free DSL under `dify/apps/`.
 - **Verification gate:** the same gateway contract tests pass against fake and
-  a no-model Dify slice; malformed output and workflow failure defer safely; no
+  a no-model Dify slice; malformed output and workflow failure yield a static
+  acknowledgement (no fail-open); no
   Yandex-specific response shape leaks through the interface. This gate does
   not claim to verify live Yandex behavior.
 - **Learning checkpoint:** show how the small interface permits replacement
@@ -94,7 +105,8 @@ ends with a verification gate and a short learning checkpoint.
 - **Owner:** bounded Yandex/RAG integration agent.
 - **Scope:** add deterministic injection checks, bounded Yandex
   injection/scope classification, ticket-context routing, retrieval evidence
-  gating (answer wins when evidence suffices; no ticket on explicit ask),
+  gating (grounded cited email only; knowledge gap uses `create-ticket`
+  with `text` in `tickets.text`; further dialogue uses `append-message`),
   grounded generation, trusted citations, and token accounting. Gateway
   toxicity remains outside Dify.
 - **Verification gate:** merge-gate route tests use fake Dify behavior and local
@@ -107,11 +119,10 @@ ends with a verification gate and a short learning checkpoint.
 
 - **Owner:** bounded lifecycle/verification agent, with final coordinating
   review.
-- **Scope:** complete the daily no-LLM Dify lifecycle App for idempotent
-  operator digests/repeated reminders and eligible auto-close requests, export
-  it under `dify/apps/`, plus negative paths, restore/re-ingestion exercises,
-  security checks, and full GreenMail system acceptance with local/fake model
-  behavior.
+- **Scope:** scheduled escalate via private HTTP
+  (`POST /v1/tickets/escalate-stale`), plus negative paths, restore/re-ingestion
+  exercises, security checks, and full GreenMail system acceptance with
+  local/fake model behavior. Escalate-stale already exists from Phase 3.
 - **Verification gate:** every acceptance criterion in
   [requirements.md](requirements.md) has the required evidence: deterministic
   criteria run locally, while live-model criteria run opt-in and are reported

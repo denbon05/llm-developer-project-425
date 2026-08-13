@@ -4,6 +4,17 @@ This document defines observable v1 behavior. Domain terms are defined in
 [CONTEXT.md](../CONTEXT.md); module placement and interfaces are defined in
 [architecture.md](architecture.md).
 
+## Scope / boundaries
+
+v1 is the LLM email path: Dify answers from company knowledge or opens a
+ticket when it cannot. A knowledge hit is emailed with a citation; no ticket
+and no `messages` row. Knowledge gap or an explicit ticket request uses
+`create-ticket`; further dialogue uses `append-message` on that ticket.
+`open` tickets whose `updated_at` is older than the inactivity threshold
+(default 24h / `escalation_seconds`) become `escalated`. This slice ends
+there; after escalate is out of scope and not modeled. `answered` and
+`closed` stay in the schema unused.
+
 ## Functional requirements
 
 - **FR-1 — Email channel.** GreenMail is mandatory for the initial integration
@@ -23,18 +34,21 @@ This document defines observable v1 behavior. Domain terms are defined in
      legitimate help-desk content.
   2. Injection receives a static response and never creates a ticket.
      Non-helpdesk content receives a bounded refusal and never creates a
-     ticket. A classifier outage quarantines the request and produces a
-     deferred acknowledgement rather than failing open.
-  3. A legitimate follow-up to `open` or `escalated` appends once to that
-     ticket and acknowledges it without RAG or another ticket. A follow-up to
-     `answered` also transitions it to `open`. A reply to `closed` creates a
-     new independent ticket.
-  4. Only when no existing-ticket path applies may a list/status intent return
-     the employee's scoped tickets. Otherwise Dify retrieval applies the
-     evidence threshold. Sufficient evidence produces a grounded answer and
-     does **not** create a ticket, even when the employee explicitly asked for
-     one. Insufficient evidence automatically creates a ticket.
-  5. A legitimate request without a specific category uses `other`.
+     ticket. A classifier outage produces a static acknowledgement rather
+     than failing open (gateway-local; no quarantine table).
+  3. A list/status intent may return the employee's scoped tickets
+     (`list-my-tickets`). Otherwise Dify retrieval applies the evidence
+     threshold.
+  4. A knowledge hit produces a grounded cited reply by email only. No
+     ticket. No `messages` row. Chat exists only in mail.
+  5. A knowledge gap or an explicit ticket request uses `create-ticket` when
+     this `user_id` has no non-`closed` ticket (`text` → `tickets.text`).
+     The call returns the ticket id. Dialogue history is `append-message` on that ticket (required
+     `ticket_id`, `user_id`, `text`, `role`). The ticket must exist and
+     `ticket.user_id` must match `user_id` or the call is `NOT_FOUND`.
+     Append inserts a message and bumps `tickets.updated_at` (activity);
+     it does not change ticket text or status. Agent rows may include usage.
+  6. A legitimate request without a specific category uses `other`.
 - **FR-4 — Knowledge and citations.** v1 uses one Dify knowledge base with
   High-Quality hybrid retrieval, local `granite-embedding:30m` through an
   internal resource-limited Ollama container, persistent bundled Weaviate, and
@@ -43,34 +57,43 @@ This document defines observable v1 behavior. Domain terms are defined in
   fixed. Canonical knowledge is versioned in Git. Citation labels and URLs
   come from trusted repository metadata, never from model-generated URLs.
 - **FR-5 — Ticket ownership and interfaces.** The ticketing module owns durable
-  ticket, message, conversation-correlation, idempotency, escalation, and
-  outbound-delivery state. It exposes private REST operations to the gateway
-  and only narrow capability-scoped MCP tools to Dify; the model cannot supply
-  an arbitrary employee identity. Its PostgreSQL is separate from Dify's
-  PostgreSQL.
-- **FR-6 — Ticket model.** Actors are `employee`, `assistant`, `operator`, and
-  `system`; categories are `bug`, `access`, `docs`, `feature`, and `other`;
-  states are `open`, `escalated`, `answered`, and `closed`.
-- **FR-7 — Ticket lifecycle.** A new ticket starts `open`. Configured operator
-  inactivity changes it to `escalated`. For v1 demos and tests, an
-  authenticated manual MCP operation records an operator response and changes
-  an active ticket to `answered`. An employee reply to `answered` reopens it to
-  `open`. Without an employee reply, `answered` auto-closes after a configurable
-  interval whose default is 24 hours. A reply to a closed thread creates a new
-  independent ticket in v1. A separate daily scheduled Dify workflow queries
-  eligible stale tickets, requests escalation and auto-close transitions, and
-  sends an idempotent deterministic operator digest/reminder through the
-  gateway without an LLM. Reminders repeat on the configured interval while a
-  ticket remains `escalated`.
-- **FR-8 — Delivery semantics.** A stable inbound idempotency key must make
-  internal effects exactly-once across polling retries and restarts. Outbound
-  SMTP is at-least-once: a crash after SMTP acceptance but before durable
-  acknowledgement may cause a duplicate within a documented retry window.
+  tickets, messages, and escalation validity. MCP tools are
+  `create-ticket`, `list-my-tickets`, `append-message`; `user_id` (sender
+  email) is a tool argument, not an HTTP header. Private HTTP is scheduled
+  `POST /v1/tickets/escalate-stale` (private network, no shared secret), not a
+  resource REST API. v1 persists a minimal schema (`tickets` and `messages`)
+  in application PostgreSQL (`helpdesk-db`), separate from Dify's PostgreSQL.
+  SMTP send/receive stays in the email gateway; v1 does not use an application
+  outbox table.
+- **FR-6 — Ticket model.** Message roles, categories, statuses, and domain error
+  codes are the `contracts.enums` StrEnums (`MessageRole`, `TicketCategory`,
+  `TicketStatus`, `DomainErrorCode`); see that module for values. Roles are
+  `user` | `agent` only. Each ticket stores `user_id` as the synthetic sender
+  email (course MVP) and masked ticket text in `tickets.text` (set at
+  create, not updated later). A message always belongs to a ticket
+  (`ticket_id` required FK). Tutor-shaped `model`
+  / `tokens_in` / `tokens_out` / `latency_ms` land on agent messages at
+  `append-message` time. Persistence uses VARCHAR for enum fields (ORM enums,
+  not Postgres ENUM types); see architecture MVP schema.
+- **FR-7 — Ticket lifecycle.** A new ticket starts `open`. Escalation is
+  inactivity on `updated_at`, not calendar time from create that ignores
+  chat. Scheduled HTTP selects `status=open` with `updated_at` older than
+  a threshold (`older_than_seconds`, default `Settings.escalation_seconds`
+  / 86400) and sets `escalated` (status-only; no lifecycle messages).
+  Ongoing dialogue delays escalate. `answered` and `closed` remain in
+  the enum/schema; the LLM path does not write them. Tests or another
+  system may poke those statuses. `append-message` inserts a message and
+  bumps `tickets.updated_at`; it does not change ticket text or status.
+- **FR-8 — Delivery semantics.** Ticket/message effects are best-effort and
+  at-least-once. The gateway may mark an inbound message processed
+  (for example IMAP `\Seen`) after successful handling; poll retries may
+  repeat mutations. Outbound SMTP is gateway-owned and at-least-once: a crash
+  around send may duplicate the email within a documented retry window.
 - **FR-9 — Dify lifecycle.** Dify Apps are authored node-by-node in the UI,
   then exported as secret-free DSL under `dify/apps/` (one export per Studio
-  App). v1 plans two Workflow-type Apps: the gateway-facing email helpdesk
-  workflow and the scheduled ticket lifecycle workflow. The first slice of each
-  is not generated from handwritten YAML. Dify remains replaceable behind the
+  App). v1 plans the gateway-facing email helpdesk Workflow App. Escalation is
+  scheduled HTTP, not a required Dify lifecycle App. The first slice is not
+  generated from handwritten YAML. Dify remains replaceable behind the
   versioned workflow interface, and provider-specific response shapes must not
   leak into callers.
 - **FR-10 — Deployment and recovery.** Run two pinned Compose projects on a
@@ -89,23 +112,26 @@ This document defines observable v1 behavior. Domain terms are defined in
 
 - **SEC-1 — Data policy.** v1 is English-only and uses synthetic,
   non-sensitive data, but applies production-like privacy controls.
-- **SEC-2 — PII minimization.** Deterministic masking runs before content is
-  sent to Dify and independently before content enters durable business
-  fields. Required detection covers email addresses, phone-like values, and
-  payment-card candidates that pass a Luhn check. GreenMail necessarily retains
-  raw synthetic transport messages and is outside this application-business
-  persistence invariant.
-- **SEC-3 — Employee scope.** The gateway/ticketing REST seam derives an
-  opaque, unguessable conversation/employee capability from normalized mail
-  identity. Dify tools receive it outside model-controlled arguments, and the
-  ticketing module derives scope from it; the model never supplies `user_id`.
-  This is not an allowlist. GreenMail sender identity is suitable only for
-  synthetic tests, not production identity authentication.
-- **SEC-4 — Delivery identity.** Short-lived outbound recipient data is
-  encrypted at rest and removed when no longer needed. Ticket history,
-  correlation, metrics, and other durable uses retain only masked or HMAC-based
-  identity. This encrypted recipient is the sole raw-PII exception in
-  application-controlled business persistence.
+- **SEC-2 — PII minimization.** Deterministic **one-way** masking runs before
+  content is sent to Dify and independently before ticket/message **text**
+  enters durable business fields. Masking replaces matches with placeholders
+  (for example `[EMAIL]`, `[PHONE]`, `[CARD]`); it is not reversible
+  encrypt/decrypt. Required detection covers email addresses, phone-like
+  values, and payment-card candidates that pass a Luhn check. GreenMail
+  necessarily retains raw synthetic transport messages and is outside this
+  text-masking invariant.
+- **SEC-3 — Employee scope.** `user_id` is the synthetic sender email (MVP).
+  MCP tools take that value as a tool argument (JSON body), not an
+  `x-user-id` header. Ticketing scopes each call to the `user_id` on that
+  call (list/create/append cannot touch another employee's ticket ids). This
+  is not an allowlist and is not production identity authentication; a caller
+  who can invoke MCP can pass any synthetic email.
+- **SEC-4 — Delivery identity.** The email gateway keeps the live SMTP/IMAP
+  recipient from the current mail session when sending replies. v1 does not
+  persist an encrypted outbox recipient table. The sole intentional raw-PII
+  exception in application-controlled business persistence is MVP
+  `tickets.user_id` (synthetic sender email). Ticket/message **text** and logs
+  remain masked.
 - **SEC-5 — Logs and errors.** Application JSON logs and error payloads contain
   no raw message, subject, recipient, retrieved passage, or other raw content.
   They may contain bounded metadata, opaque correlation identifiers, and
@@ -116,8 +142,9 @@ This document defines observable v1 behavior. Domain terms are defined in
   are trusted. Untrusted text must not be promoted into a trusted instruction
   context.
 - **SEC-7 — Access and secrets.** Runtime interfaces remain on a private
-  LAN/VPN and the shared container network. MCP operator actions require
-  authentication. Secrets stay out of Git and exported Dify DSL.
+  LAN/VPN and the shared container network. MCP tools take `user_id` as a
+  tool argument. Secrets stay out of Git and exported
+  Dify DSL.
 - **SEC-8 — External models.** Yandex is the only external model processor
   receiving application content in v1. Embedding is local; configuration and
   acceptance checks reject watsonx and every other external model provider.
@@ -127,52 +154,60 @@ This document defines observable v1 behavior. Domain terms are defined in
 - The gateway consumes Dify Workflow SSE and records `workflow_run_id`,
   end-to-end latency, and the answer-generator node's input and output token
   usage.
-- Message records retain the tutor-shaped `model`, `tokens_in`, `tokens_out`,
-  and `latency_ms` fields where applicable. There is no separate
-  `model_calls` table.
+- Agent message records retain the tutor-shaped `model`, `tokens_in`,
+  `tokens_out`, and `latency_ms` fields set at `append-message` time. There
+  is no separate `model_calls` table or `record-usage` HTTP route.
 - Persisted token counts must match the corresponding Dify answer-generator
   usage within 10%.
-- Logs must make correlation, routing outcome, retries, idempotency decisions,
-  ticket transitions, and delivery outcome diagnosable without raw content.
+- Logs must make correlation, routing outcome, retries, ticket transitions, and
+  delivery outcome diagnosable without raw content.
 
 ## Acceptance criteria
 
 1. A supported GreenMail question produces a grounded English email with a
-   clickable trusted repository citation and no ticket.
-2. When no existing-ticket path applies and knowledge evidence is sufficient, a
-   legitimate request produces a grounded cited answer and no ticket — including
-   when the employee explicitly asked for a ticket.
+   clickable trusted repository citation. No ticket is created and no
+   `messages` row is written. When a ticket is created, `text` is stored
+   masked in `tickets.text` (immutable after create). Chat lines are
+   `append-message` on that ticket.
+2. When no existing-ticket path applies and knowledge evidence is sufficient,
+   a legitimate request produces a grounded cited email as above — emailed
+   only, with no MCP message ids.
 3. A legitimate request below the evidence threshold automatically creates
    exactly one ticket; an uncategorized request is stored as `other`.
 4. Toxicity/abuse word-list matches at the gateway produce a static reply with
    no Dify call and no ticket. Injection, non-helpdesk input, and classifier
    outage respectively produce a static block, a bounded refusal, and a
-   quarantined deferred acknowledgement; none creates a ticket.
-5. A legitimate follow-up appends exactly once: `open`/`escalated` stays on the
-   same ticket without RAG, `answered` reopens, and `closed` creates a new
-   independent ticket. Before sending a ticket confirmation, REST
-   reconciliation verifies the ticket/message effects under the current
-   capability/idempotency context.
-6. `list-my-tickets` returns only tickets in the current capability's scope,
-   and an arbitrary model-supplied employee identity is rejected.
-7. Lifecycle tests prove repeated escalation, authenticated operator response,
-   reopen, 24-hour default auto-close, and the daily idempotent no-LLM operator
-   digest/reminder.
-8. Privacy tests show required PII absent from Dify-bound content,
-   application-controlled business fields, and application logs/errors. The
-   only business-store exception is the encrypted short-lived recipient;
-   GreenMail's raw synthetic transport messages are explicitly outside the
-   invariant.
-9. Retry tests prove exactly-once inbound business effects and demonstrate the
-   documented at-least-once SMTP duplicate window.
+   static acknowledgement; none creates a ticket.
+5. `append-message` requires `ticket_id`, `user_id`, `text`, and `role`. The
+   ticket must exist and match `user_id`; otherwise the write is `NOT_FOUND`.
+   Invented ticket ids and ticket ids owned by a different `user_id` are
+   rejected. `create-ticket` stores `text` in `tickets.text` only. A new
+   ticket is created only when this
+   `user_id` has no non-`closed` ticket. Append inserts a message and bumps
+   `tickets.updated_at` (activity); it does not rewrite `tickets.text` or
+   change ticket status.
+6. `list-my-tickets` returns only tickets for the `user_id` tool argument.
+   Course MVP: that argument is model-visible; ticketing scopes to it rather
+   than rejecting a caller-supplied identity.
+7. Escalation tests prove scheduled HTTP `POST /v1/tickets/escalate-stale`
+   moves `open` tickets with stale `updated_at` to `escalated` without
+   inserting messages. An append that refreshes `updated_at` keeps that
+   ticket `open` while a similarly aged idle ticket escalates.
+8. Privacy tests show required PII absent from Dify-bound content, durable
+   ticket/message **text**, and application logs/errors. The documented
+   business-store exception is MVP `tickets.user_id` (synthetic sender
+   email); GreenMail's raw synthetic transport messages are explicitly
+   outside the text-masking invariant.
+9. Gateway retry handling uses mailbox hints (for example `\Seen` after success)
+   and best-effort semantics; tests demonstrate the documented at-least-once
+   SMTP duplicate window.
 10. Contract tests preserve `workflow_run_id` and fake SSE usage correctly;
     opt-in live checks compare stored token counts with Dify answer-generator
     usage within 10%.
 11. Malicious instructions in retrieved knowledge cannot change routing, tool
     authorization, or repository-controlled citation URLs.
-12. Restart and restore checks preserve ticket/idempotency/outbox state; deleting
-   the vector index and re-ingesting canonical Git documents restores
-   retrieval.
+12. Restart and restore checks preserve ticket/message data; deleting the
+   vector index and re-ingesting canonical Git documents restores retrieval.
 13. Deterministic merge-gate CI uses fake Dify contract behavior, local
     GreenMail/PostgreSQL/retrieval, static DSL/provider/contract checks that
     reject non-Yandex external models, and any no-model Dify slice. Real Yandex
@@ -182,12 +217,14 @@ This document defines observable v1 behavior. Domain terms are defined in
 14. Committed Dify App exports under `dify/apps/` contain no secrets and are
     demonstrably derived after the UI-authored workflow slices.
 15. Submission evidence for the course substitute stack is a Dify workflow run
-    and SSE usage record, ticket state observed through private interfaces
+    and SSE usage record, ticket status observed through private interfaces
     (plus the permitted direct privacy audit), and a deterministic GreenMail
     end-to-end transcript — not YDB or Yandex-managed application runtimes.
 
-## Exclusions and deferred scope
+## Exclusions
 
+- operator UI, modeled human replies, and auto-close (after `escalated` is
+  out of scope / not modeled)
 - watsonx and all non-Yandex external model APIs; provider comparison,
   runtime switching, and failover
 - Yandex-managed agent/workflow/database runtime services beyond use of the
@@ -196,17 +233,16 @@ This document defines observable v1 behavior. Domain terms are defined in
   ingress, and sender/domain allowlists
 - attachment processing, multilingual behavior, and real or sensitive data
 - broader NLP-based PII discovery beyond the required deterministic types
-- a dedicated operator UI or CLI; v1 uses authenticated manual MCP operations
 - linked historical tickets after a closed-thread reply
 - reranking, external tracing platforms, and business-calendar escalation
-- receiver-visible exactly-once email delivery
 - Ansible or other infrastructure orchestration beyond minimal Compose/Make
 
 ## Provisional parameters
 
 Exact input-size/rate values, the toxicity word-list contents, retrieval Top K
-and evidence threshold, and escalation/reminder intervals will be calibrated at
+and evidence threshold, and escalation intervals will be calibrated at
 their phase gates. Until then, the required outcomes above are normative:
-inadequate evidence creates a ticket, sufficient evidence answers without a
-ticket, toxicity matches skip Dify with a static reply, limits remain enabled,
-and escalation repeats on configured intervals.
+inadequate evidence creates a ticket when none is active, a grounded cited
+email is sent with no ticket and no `messages` row, toxicity matches skip
+Dify with a static reply, limits remain enabled, and `open` tickets
+inactive on `updated_at` escalate over HTTP.

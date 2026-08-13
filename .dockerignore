@@ -1,0 +1,16 @@
+.venv
+.git
+.pytest_cache
+.ruff_cache
+.cursor
+.watsonx_version
+.data
+dify
+docs
+tests
+.env
+dify/.env
+__pycache__
+*.pyc
+.coverage
+htmlcov

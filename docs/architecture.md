@@ -4,68 +4,77 @@ This is the Phase 1 design target, not a description of an implemented runtime.
 It keeps transport and durable business behavior outside Dify so the AI brain
 can be replaced through one small interface.
 
+The design is an LLM-focused slice: email in; knowledge hit is emailed with a
+citation (no ticket, no `messages` row); knowledge gap opens a ticket and
+records AI↔employee history; `open` tickets whose `updated_at` is older
+than the inactivity threshold (default 24h / `escalation_seconds`) become
+`escalated`. This slice stops at escalate — after that is out of scope
+and not modeled. `answered` and `closed` remain in the schema unused here.
+
 ## Modules and interfaces
 
 - **Email gateway module** — hides generic IMAP/SMTP transport, content
   normalization, size/rate controls, a pre-Dify toxicity/abuse word-list gate
-  (static reply, no LLM), pre-Dify PII masking, workflow SSE consumption, and
-  outbox delivery. GreenMail is its first mail adapter; the normal poll
-  interval is one minute and is configurable for tests.
+  (static reply, no LLM), pre-Dify one-way PII masking, workflow SSE
+  consumption, and direct SMTP reply delivery (no application outbox table).
+  GreenMail is its first mail adapter; the normal poll interval is one minute
+  and is configurable for tests.
 - **Dify brain module** — self-hosted Workflow-type Dify Apps (node graphs) for
   bounded scope/injection classification, ticket-context routing, retrieval,
-  grounded Yandex generation, and narrow MCP calls. Sufficient knowledge
-  evidence produces a grounded answer and does not create a ticket, including
-  when the employee asked for one. Its only gateway-facing interface is the
-  versioned workflow contract below. A separate scheduled Dify App owns daily
-  lifecycle digests/reminders without an LLM.
-- **Ticketing module** — the sole authority for conversations, tickets,
-  messages, lifecycle transitions, inbound idempotency, quarantine, and the
-  SMTP outbox. It derives employee scope from opaque capabilities. One
-  application interface has a private REST adapter for the gateway and a
-  narrow MCP adapter for Dify.
-- **Privacy module** — deterministically masks email, phone-like values, and
-  Luhn-valid payment-card candidates. The gateway uses it before Dify and the
-  ticketing module applies it again at its persistence seam.
+  grounded Yandex generation, and MCP tools (`create-ticket`,
+  `list-my-tickets`, `append-message`). A grounded cited reply is emailed
+  only. A knowledge gap or explicit ticket request uses `create-ticket`
+  (`text` → `tickets.text`, set once); further dialogue uses
+  `append-message` with that `ticket_id`.
+  Its only gateway-facing interface is the versioned workflow contract below.
+- **Ticketing module** — the sole authority for tickets, messages, escalation
+  validity, and employee scope. It derives employee scope from the `user_id`
+  tool argument (synthetic sender email) on `tickets.user_id`. MCP tools are
+  `create-ticket`, `list-my-tickets`, and `append-message`. Private HTTP is
+  `POST /v1/tickets/escalate-stale`. v1 schema is intentionally small:
+  `tickets` and `messages` (`messages.ticket_id` required FK; employee
+  scope lives on `tickets.user_id` only).
+- **Privacy module** — deterministically one-way masks email, phone-like values,
+  and Luhn-valid payment-card candidates into placeholders. The gateway uses it
+  before Dify and the ticketing module applies it again at its persistence seam
+  for ticket/message text. Masking is not reversible encrypt/decrypt.
 - **Knowledge module** — treats versioned Markdown in Git as canonical,
   produces trusted source metadata, and reproducibly ingests one Dify
   knowledge base. Dify performs High-Quality hybrid retrieval over Weaviate
   using local `granite-embedding:30m`; no reranker is present initially.
-- **Lifecycle schedule** — a separate Dify workflow runs daily, queries
-  eligible stale tickets through narrow MCP operations, requests escalation
-  and auto-close transitions, and creates an idempotent deterministic operator
-  digest/reminder without an LLM. The ticketing module validates time, state,
-  and idempotency and enqueues the notice for gateway delivery; an escalated
-  ticket becomes eligible again on its configured reminder interval.
+- **Lifecycle schedule** — a scheduler (Dify or otherwise) calls private HTTP
+  `POST /v1/tickets/escalate-stale`. Ticketing selects `open` rows whose
+  `updated_at` is older than the inactivity threshold (default
+  `Settings.escalation_seconds` / 86400) and sets `escalated` (status-only).
+  Append refreshes `updated_at`, so ongoing dialogue delays escalate.
+  That is the last lifecycle step this slice implements.
 
 ## Conceptual application contracts
 
-The **private REST adapter** accepts normalized mail identity only from the
-gateway. Claiming an inbound message returns its idempotency context, an
-opaque/unguessable employee-conversation capability, and authoritative current
-ticket context. It also reconciles claimed MCP effects, finalizes workflow and
-transport metadata, and manages quarantine and outbox claim/acknowledgement.
+The **private HTTP adapter** is not a ticket resource API. It exposes
+`POST /v1/tickets/escalate-stale`.
+Escalate is status-only. A classifier or workflow outage yields a static
+acknowledgement with no fail-open; ticketing does not require a quarantine
+or outbox table.
 
-The **narrow MCP adapter** receives capability and idempotency context from
-workflow runtime bindings, outside model-controlled arguments:
+The **MCP adapter** takes `user_id` (synthetic sender email) as a tool
+argument on each call:
 
-- `create-ticket` idempotently creates one scoped ticket and its initial
-  history.
-- `list-my-tickets` lists only tickets derived from the current capability.
-- `append-message` appends one message attributed to an authorized actor on a
-  scoped ticket.
-- stale/lifecycle and authenticated operator operations remain task-shaped and
-  narrow; no tool exposes SQL or accepts arbitrary `user_id`.
+- `create-ticket` creates one scoped `open` ticket: masked `text` in
+  `tickets.text` (set at create, not updated). No message row. Rejects if
+  this `user_id` already has a non-`closed` ticket.
+- `list-my-tickets` lists only tickets for that `user_id`.
+- `append-message` inserts one `user` or `agent` row on an existing ticket
+  and bumps `tickets.updated_at` (activity) so escalate waits. Required:
+  `ticket_id`, `user_id`, `text`, `role`. Load the ticket and deny
+  with `NOT_FOUND` when missing or `ticket.user_id != user_id`. Agent rows
+  may set tutor usage. Append does not change ticket text or status. Return
+  is `message_id` and `ticket_id` (always set).
 
-One logical message has one writer. If MCP creates/appends it, REST
-finalization references the returned message identities and only attaches
-workflow/transport metadata and delivery intent; it never appends those
-messages again. Without an MCP history mutation, REST may persist the
-non-ticket conversation message.
-
-The capability prevents model-selected cross-employee access; it does not turn
-email headers into production authentication. GreenMail sender identity is
-acceptable only for synthetic v1 tests, and real-mail sender assurance is
-deferred.
+No MCP tool answers or escalates tickets. For the course MVP, ticketing
+stores synthetic sender email as `tickets.user_id`. A call is scoped to its
+`user_id` argument (wrong ticket id is rejected); choosing another
+employee's email is not prevented. This is not production authentication.
 
 ## Deployment topology
 
@@ -77,11 +86,11 @@ flowchart LR
         subgraph App["Pinned application Compose project"]
             Mail[GreenMail]
             Gateway[Email gateway]
-            Ticketing[Ticketing REST and MCP]
-            TicketDB[(Ticket PostgreSQL)]
+            Ticketing[Ticketing HTTP and MCP]
+            HelpdeskDB[(Helpdesk PostgreSQL)]
             Gateway <--> Mail
-            Gateway -->|private REST| Ticketing
-            Ticketing --> TicketDB
+            Gateway -->|MCP create/list/append| Ticketing
+            Ticketing --> HelpdeskDB
         end
 
         subgraph DifyStack["Pinned Dify Compose project"]
@@ -96,6 +105,7 @@ flowchart LR
 
         Gateway -->|Workflow SSE| Dify
         Dify -->|narrow MCP| Ticketing
+        Dify -.->|scheduled HTTP escalate-stale| Ticketing
     end
 
     Employee <--> Mail
@@ -105,20 +115,19 @@ flowchart LR
 The two Compose projects use pinned images, plugins, and model tags. Yandex is
 the only external model processor receiving application content in v1;
 configuration and acceptance reject other external model providers. Ollama is
-internal. Dify's PostgreSQL and ticket PostgreSQL never share ownership or
+internal. Dify's PostgreSQL and helpdesk PostgreSQL never share ownership or
 schemas.
 
 Compose definitions live at root `compose.yml` (application stack: gateway,
-ticketing, ticket PostgreSQL, GreenMail) and `dify/compose.yml` (Dify platform:
+ticketing, helpdesk PostgreSQL, GreenMail) and `dify/compose.yml` (Dify platform:
 Dify, its PostgreSQL, Weaviate, Ollama). Each file carries a short top comment
 naming the stack. The Dify project creates the shared Docker network
 `helpdesk_private`; the application project joins it as external (start Dify
 first). The root `Makefile` wraps both with foreground
-`make dify-stack-up` / `make app-stack-up` (two-terminal operator workflow).
+`make dify-stack-up` / `make app-stack-up` (two terminals).
 Secret-free Dify App DSL exports live under `dify/apps/` after UI authoring
-(FR-9) — one YAML export per Studio App (email helpdesk in Phase 5; ticket
-lifecycle in Phase 8). Phase 2 proves Start→End in the Studio UI without a
-committed handwritten DSL file.
+(FR-9) — one YAML export per Studio App (email helpdesk in Phase 5). Phase 2
+proves Start→End in the Studio UI without a committed handwritten DSL file.
 
 ## Minimal Dify contract
 
@@ -131,10 +140,10 @@ WorkflowRequestV1
   message_ref: opaque string
   correlation_ref: opaque string
   conversation_ref: opaque string
-  scope_capability: opaque unguessable string (not a model argument)
+  user_id: synthetic sender email (gateway-supplied on this request)
   masked_subject: string
   masked_body: string
-  ticket_context?: { ticket_id, category, state }
+  ticket_context?: { ticket_id, category, status }
 
 WorkflowResultV1
   contract_version: "1"
@@ -144,33 +153,33 @@ WorkflowResultV1
         | ticket_listed
         | blocked_injection
         | rejected_non_helpdesk
-        | deferred
   reply_text: string
   ticket_id?: string
   message_ids?: [string]
-  tickets?: [{ ticket_id, category, state, updated_at }]
+  tickets?: [{ ticket_id, category, status, updated_at }]
   citations: [{ source_id, title, trusted_url }]
 ```
 
-`ticket_created` and `ticket_updated` require the authoritative `ticket_id` and
-bounded `message_ids` returned by MCP; `ticket_listed` returns the bounded
-scoped list. A grounded answer requires at least one citation assembled from
-trusted repository metadata; the gateway rejects URLs outside the configured
-repository base. Other actions return no citations. The gateway maps a
-classifier/workflow outage to the same local `deferred` outcome and quarantine
-path.
+`grounded_answer` does not require MCP message ids. `ticket_created`
+requires the authoritative `ticket_id` returned by MCP. `ticket_updated`
+is later `append-message` on that ticket (`ticket_id` plus the new
+`message_id`). `ticket_listed` returns the
+bounded scoped list. A grounded answer requires at least one citation
+assembled from trusted repository metadata; the gateway rejects URLs
+outside the configured repository base. Other actions return no citations.
+The gateway maps a classifier or workflow outage to a static
+acknowledgement (no fail-open).
 
 Execution metadata is not model output. The gateway separately consumes Dify
 Workflow SSE to capture `workflow_run_id`, answer-generator input/output token
-usage, and latency, then stores those values in the tutor-shaped message
-fields. Provider selection remains deployment configuration.
+usage, and latency. Tutor usage is stored on the agent `append-message` row.
+Provider selection remains deployment configuration.
 
 ## Controlled request flow
 
-1. The gateway polls a message, normalizes its mail identity, derives the
-   stable inbound identity, and claims it through private REST before any
-   external or business effect. REST returns the idempotency context, scope
-   capability, and authoritative current-ticket context.
+1. The gateway polls a message, normalizes its mail identity, and uses the
+   sender mailbox as `user_id` (MVP). Ticket context comes from MCP
+   `list-my-tickets`, not a resolve-scope HTTP call.
 2. It normalizes plain text or sanitized HTML, ignores attachments, and
    enforces size/rate limits.
 3. Before any Dify or model call, it applies a configured toxicity/abuse
@@ -181,28 +190,24 @@ fields. Provider selection remains deployment configuration.
    bounded Yandex injection/scope classifier:
    - injection returns a static block and no ticket;
    - non-helpdesk input returns a bounded refusal and no ticket;
-   - classifier outage returns control for quarantine and a deferred
-     acknowledgement.
-5. For legitimate content, authoritative ticket context takes precedence:
-   - `open`/`escalated`: append the employee message once and return a
-     deterministic `ticket_updated` acknowledgement, without RAG or a new
-     ticket;
-   - `answered`: append once, transition to `open`, and return
-     `ticket_updated`;
-   - `closed`: create a new independent ticket;
-   - no applicable ticket: handle scoped list/status intent if present;
-     otherwise run retrieval/evidence routing. Sufficient evidence returns a
-     grounded cited answer and does **not** create a ticket, even when the
-     employee explicitly asked for one. Insufficient evidence creates a
-     ticket; uncategorized legitimate work uses `other`.
-6. The gateway validates the typed result and SSE metadata. Before sending
-   `ticket_created` or `ticket_updated`, it reconciles the claimed
-   ticket/messages through REST under the current capability and idempotency
-   context. REST finalization references any MCP-owned message, stores remaining
-   masked metadata, and enqueues the reply without double-writing history.
-7. The outbox delivers through SMTP and records the outcome. The inbox message
-   is acknowledged only after durable internal processing, so a poll retry
-   cannot duplicate ticket or message effects.
+   - classifier outage returns control for a static acknowledgement
+     (no fail-open);
+5. For legitimate content:
+   - Grounded cited reply: email it only. No ticket. No `messages` row.
+   - Knowledge gap or an explicit ticket request: `create-ticket` when
+     this `user_id` has no non-`closed` ticket (`text` → `tickets.text`).
+     Uncategorized legitimate work uses
+     `other`. Further dialogue uses `append-message` with that `ticket_id`
+     (`role=user` / `role=agent` with usage). Append bumps
+     `tickets.updated_at`; it does not change ticket text or status.
+   - Scoped list/status intent uses `list-my-tickets`.
+6. The gateway validates the typed result and SSE metadata. Usage is passed
+   on the agent append, not a separate HTTP `record-usage`. Bad or
+   out-of-scope ids fail on the MCP call.
+7. The gateway sends the reply through SMTP using the live mail-session
+   recipient. After successful handling, the inbound message may be marked
+  processed (for example IMAP `\Seen`). Ticket/message effects are
+  best-effort and at-least-once: poll retries may repeat them.
 
 ## Trust seams
 
@@ -211,96 +216,121 @@ fields. Provider selection remains deployment configuration.
 - Repository-controlled workflow schemas, tool definitions, governing
   instructions, and source-ID-to-URL mappings are trusted configuration.
   Retrieved document text remains data: embedded instructions cannot change
-  routing, tool authorization/capability, or trusted citation URLs.
+  routing, tool authorization, or trusted citation URLs.
 - Dify and its model are behind a validation seam: only the typed result and
   validated citation metadata can drive gateway behavior. Ticketing
-  independently enforces authorization, valid transitions, masking, and
-  idempotency for every REST/MCP mutation.
-- The scope capability is injected by a workflow runtime binding rather than
-  chosen by the model. Ticketing derives employee scope and rejects arbitrary
-  identity arguments.
+  independently enforces authorization, valid transitions, and masking for
+  every HTTP/MCP mutation.
+- MCP tools take `user_id` (sender email) as a tool argument. Ticketing
+  scopes each call to that value and rejects ticket ids owned by a different
+  `user_id`. Course MVP: the model may supply `user_id`; this is not
+  production authentication.
 - Yandex is the only external model processor and receives only already-masked
-  content. Raw delivery addresses remain encrypted inside the application
-  stack for the shortest practical outbox lifetime.
-- The REST and MCP adapters are private-network interfaces. Operator MCP
-  actions additionally require authentication.
+  content. SMTP uses the gateway's live recipient from the mail session.
+- The HTTP and MCP adapters are private-network interfaces.
 
 ## Data ownership
 
-- **Ticket PostgreSQL:** authoritative masked conversations, messages and tutor
-  token fields; tickets and lifecycle; inbound idempotency; quarantine; and
-  encrypted short-lived outbox recipients.
-- **Dify PostgreSQL:** Dify-owned configuration and workflow operational state,
-  isolated from ticket business data.
+- **Helpdesk PostgreSQL** (`helpdesk-db`): v1 tables are `tickets` (including
+  MVP synthetic `user_id` email, category, status, masked `text` set at
+  create, timestamps),
+  and `messages` (required `ticket_id` FK; role; masked `text`; tutor token
+  fields on agent rows). Employee scope is `tickets.user_id` only. No outbox,
+  quarantine, idempotency, or scope-binding tables in v1. Ticketing
+  persistence uses async SQLAlchemy with the psycopg driver
+  (`postgresql+psycopg://`).
+- **Dify PostgreSQL:** Dify-owned configuration and workflow operational data,
+  isolated from helpdesk business data.
 - **Git:** canonical knowledge Markdown, secret-free Dify DSL exports,
   contracts, migrations, and recovery instructions.
 - **Weaviate:** derived retrieval index. It is persistent for normal operation
   but disposable and reproducible from Git knowledge.
 - **GreenMail/mailbox:** raw synthetic transport messages required for email
-  tests. This is not business persistence or a ticket/conversation source of
-  truth and is explicitly outside the application's PII-absence invariant.
+  tests. Not the source of truth for ticket/message effects.
 
 No application JSON log is a data store. Application logs contain opaque
 references and bounded metadata, never raw content.
 
+## MVP schema (Postgres)
+
+Tutor YDB shapes adjusted for Postgres. Enums and meanings:
+[CONTEXT.md](../CONTEXT.md) / FR-6 / `contracts.enums`. `category`, `status`,
+and `role` are StrEnums on the ORM (`SQLAlchemy Enum`, `native_enum=False`):
+VARCHAR storage, not Postgres ENUM types. Text columns store one-way-masked
+content. `tickets.text` is masked ticket text (immutable after create);
+a message always belongs to a ticket. Escalation does not insert messages.
+
+```text
+tickets
+  id          UUID PRIMARY KEY
+  user_id     TEXT NOT NULL          -- synthetic sender email (MVP)
+  category    VARCHAR NOT NULL      -- TicketCategory
+  status      VARCHAR NOT NULL      -- TicketStatus
+  text        TEXT NOT NULL          -- masked ticket text (immutable after create)
+  created_at  TIMESTAMPTZ NOT NULL
+  updated_at  TIMESTAMPTZ NOT NULL
+  INDEX (user_id)
+  INDEX (status)
+
+messages
+  id          UUID PRIMARY KEY
+  ticket_id   UUID NOT NULL REFERENCES tickets(id)
+  role        VARCHAR NOT NULL      -- MessageRole
+  text        TEXT NOT NULL          -- masked
+  model       TEXT NULL
+  tokens_in   BIGINT NULL
+  tokens_out  BIGINT NULL
+  latency_ms  INTEGER NULL
+  created_at  TIMESTAMPTZ NOT NULL
+  INDEX (ticket_id)
+```
+
 ## Delivery semantics
 
-Every mutating REST or MCP command carries an idempotency key. The ticketing
-module serializes competing claims and stores the result, allowing the gateway
-and Dify to retry after timeouts without repeating internal effects. The normal
-inbound identity is `(mailbox identity, RFC Message-ID)`. If that header is
-absent, it is `(mailbox identity, UIDVALIDITY, UID)`. The stored key is an
-opaque/HMAC encoding of the selected identity tuple; raw message content never
-participates.
+Ticket/message effects are best-effort and at-least-once. The gateway may
+mark an inbound message processed (for example IMAP `\Seen`) after successful
+handling; poll retries may repeat mutations.
 
-SMTP remains at-least-once. The outbox records intent before sending and marks
-delivery after SMTP acceptance. A crash between those two events causes a
-retry and can duplicate the email. The implementation must document the retry
-and retention horizon that bounds this duplicate window; receiver-visible
-exactly-once delivery is not claimed.
+SMTP remains gateway-owned and at-least-once. Without an outbox table, a crash
+around send can duplicate the email. The gateway must document the retry window
+that bounds this; receiver-visible exactly-once delivery is not claimed.
 
-## Ticket state machine
+## Ticket status machine
 
 ```mermaid
 stateDiagram-v2
-    [*] --> open: ticket created
-    open --> escalated: inactivity threshold reached
-    escalated --> escalated: reminder interval reached
-    open --> answered: operator response
-    escalated --> answered: operator response
-    answered --> open: employee reply
-    answered --> closed: no employee reply / default 24h
-    closed --> NewTicket: closed-thread employee reply
+    [*] --> open: create-ticket
+    open --> escalated: HTTP escalate-stale
+    open --> answered
+    escalated --> answered
+    answered --> closed
+    closed --> NewTicket: create-ticket when no active ticket
     state "open (new independent ticket)" as NewTicket
 ```
 
 The final arrow creates another ticket; it does not reopen or link the closed
-one. Scheduling requests transitions, while the ticketing module owns their
-validity and records `system` messages for automated changes.
+one. Phase 3 does not write `answered` or `closed` except tests poking the DB.
+`append-message` inserts a message and bumps `tickets.updated_at`; it does
+not change ticket text or status. After `escalated` is out of scope / not
+modeled.
 
 ## Persistence and recovery principles
 
 - Named volumes preserve both PostgreSQL stores and Weaviate across ordinary
   restarts. Migrations are repeatable and backups/restores are tested before
   acceptance.
-- Inbox claims, idempotent mutation results, quarantine, and outbox state live
-  with ticket data, so restart recovery resumes rather than reconstructs
-  business effects from mailbox flags.
+- Ticket and message data live in PostgreSQL; mailbox flags such as `\Seen` are
+  a best-effort processing hint, not a durable exactly-once guarantee in v1.
 - Canonical knowledge remains in Git. Reproducible ingestion can delete and
   rebuild the Weaviate index, preserving source IDs and trusted URLs.
 - The reviewed, secret-free Dify exports reconstruct workflow structure.
   Provider credentials stay in Dify's encrypted store; other secrets use
   gitignored local files with committed examples only.
 - Minimal Make targets cover env bootstrap and foreground stack up/down. Use
-  Compose directly for logs/ps; tests, seed/ingest, and restore arrive in later
-  phases. Destructive volume deletion (`docker compose … down -v`) is manual
+  Compose directly for logs/ps. Destructive volume deletion (`<cli> compose … down -v`) is manual
   and irreversible — document the risk before using it.
 
 ## Proposed repository tree
-
-This is a later-phase target; Phase 1 creates only the Markdown documents.
-Eval suite layout under `tests/` is deferred until the knowledge/evaluation
-phase; co-locate cases and rubrics when that work starts.
 
 ```text
 .
@@ -316,8 +346,7 @@ phase; co-locate cases and rubrics when that work starts.
 ├── dify/
 │   ├── compose.yml              # Dify platform stack
 │   └── apps/                    # one secret-free DSL export per Dify App
-│       ├── email_helpdesk.yml   # names finalized at Studio export time
-│       └── ticket_lifecycle.yml
+│       └── email_helpdesk.yml   # names finalized at Studio export time
 ├── src/
 │   ├── contracts/
 │   ├── privacy/

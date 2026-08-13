@@ -93,7 +93,7 @@ services:
       - ssrf_proxy_network
       - helpdesk_private
 
-  # Celery beat deferred until scheduled lifecycle apps (Phase 8) need it.
+  # Celery beat is unused.
 
   # Dify Studio / console web UI (proxied by nginx).
   web:

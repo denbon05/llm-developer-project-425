@@ -1,27 +1,26 @@
 # Domain Glossary
 
-These terms describe the help-desk domain. Required behavior and technical
-design belong in the linked requirements and architecture documents.
+These terms describe this LLM slice, not a full helpdesk. Required behavior
+and technical design belong in the linked requirements and architecture
+documents.
 
-## Actors
+## Participants
 
-- **Employee** — the person seeking internal help and the author of inbound
-  help-desk messages.
-- **Assistant** — the automated author of grounded answers, ticket
-  confirmations, static blocks/refusals, and deferred acknowledgements.
-- **Operator** — the authorized human author of support responses.
-- **System** — the non-human author of lifecycle and delivery records and
-  operator digests.
+- **Employee** — the person seeking internal help; inbound lines use message
+  role `user`. For the course MVP, sender email **is** `user_id`.
+- **Assistant** — the automated author of grounded answers and other LLM
+  replies; persisted as role `agent` only when a ticket exists.
 
 ## Core terms
 
-- **Conversation** — the logically correlated exchange of messages for an
-  employee email thread. A conversation may have no ticket or may produce
-  separate tickets over time.
-- **Message** — one immutable contribution to a conversation, attributed to
-  exactly one actor.
-- **Ticket** — an independently tracked help-desk work item requiring operator
-  attention, with one category, one lifecycle state, and a message history.
+- **Ticket** — an independently tracked work item with one category, one
+  lifecycle status, masked **text** in `tickets.text` (set at create, not
+  updated), conversation history in `messages`, `updated_at` as last
+  activity time (create or append), and (for the course MVP) `user_id`
+  equal to the synthetic sender email used as the employee key.
+- **Message** — one immutable contribution that always belongs to a ticket
+  (`ticket_id` required), attributed to `user` or `agent`, with masked text.
+  Agent rows may store `model` / `tokens_in` / `tokens_out` / `latency_ms`.
 - **Knowledge gap** — absence of sufficient reliable company knowledge to
   answer a legitimate help-desk request.
 - **Explicit ticket request** — an unambiguous employee instruction to create,
@@ -36,21 +35,19 @@ design belong in the linked requirements and architecture documents.
   instructions, change authorized scope, disclose protected information, or
   cause an unauthorized action.
 
-## Ticket categories
+## Ticket categories and statuses
 
-- **bug** — an existing tool, device, or process is malfunctioning or producing
-  an error.
-- **access** — an account, permission, authentication, or authorization issue.
-- **docs** — company guidance is missing, unclear, inconsistent, or incorrect.
-- **feature** — a request for a new capability or an enhancement.
-- **other** — a legitimate help-desk matter that does not fit the four specific
-  categories.
+Canonical values live in `contracts.enums` (`TicketCategory`, `TicketStatus`,
+`MessageRole`). Brief meanings:
 
-## Ticket states
-
-- **open** — active and awaiting operator action.
-- **escalated** — still active and awaiting operator action after its response
-  target was missed.
-- **answered** — the operator has responded and the ticket awaits employee
-  follow-up or the end of the response window.
-- **closed** — no further work is active for that ticket.
+- **Categories:** `bug` (malfunction), `access` (permissions/auth), `docs`
+  (guidance gap), `feature` (new capability), `other` (legitimate but
+  uncategorized).
+- **Roles:** `user` | `agent` only.
+- **Statuses:** `open` (LLM-active), `escalated` (inactivity on
+  `updated_at` via scheduled HTTP; default threshold
+  `escalation_seconds` / 24h), `answered` and `closed` (in the schema;
+  this slice does not write them). Append refreshes `updated_at` so
+  ongoing dialogue delays escalate. After `escalated` is out of scope.
+  A new ticket may be created when this `user_id` has no non-`closed`
+  ticket.

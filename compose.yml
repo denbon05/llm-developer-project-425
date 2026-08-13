@@ -1,6 +1,7 @@
-# Application stack — Phase 2 private-platform slice.
-# GreenMail only: gateway, ticketing, and ticket PostgreSQL arrive in later phases.
+# Application stack — Phase 3 ticketing slice.
+# GreenMail + helpdesk Postgres + ticketing. email-gateway arrives in Phase 4.
 # Joins helpdesk_private created by the Dify stack (start Dify first).
+# Variable values come from `.env` (see `.env.example`); no :- fallbacks here.
 
 name: helpdesk-app
 
@@ -18,14 +19,14 @@ services:
         -Dgreenmail.verbose
     # Loopback-only publish for local IMAP/SMTP/API tests (SEC-7).
     ports:
-      - "127.0.0.1:${GREENMAIL_SMTP_PORT:-3025}:3025"
-      - "127.0.0.1:${GREENMAIL_IMAP_PORT:-3143}:3143"
-      - "127.0.0.1:${GREENMAIL_API_PORT:-8081}:8080"
+      - "127.0.0.1:${GREENMAIL_SMTP_PORT}:3025"
+      - "127.0.0.1:${GREENMAIL_IMAP_PORT}:3143"
+      - "127.0.0.1:${GREENMAIL_API_PORT}:8080"
     healthcheck:
       test:
         - CMD-SHELL
         - >-
-          bash -ec 'exec 3<>/dev/tcp/127.0.0.1/8080;
+          bash -ec 'exec 3<>/dev/tcp/127.0.0.1:8080;
           printf "GET /api/service/readiness HTTP/1.0\r\nHost: localhost\r\n\r\n" >&3;
           IFS=" " read -r _ status _ <&3;
           test "$$status" = 200'
@@ -36,6 +37,72 @@ services:
     networks:
       - default
       - helpdesk_private
+
+  helpdesk-db:
+    image: postgres:15.13-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${HELPDESK_DB_USER}
+      POSTGRES_PASSWORD: ${HELPDESK_DB_PASSWORD}
+      POSTGRES_DB: ${HELPDESK_DB_NAME}
+    # Loopback publish for host tools against compose DB.
+    ports:
+      - "127.0.0.1:${HELPDESK_DB_PORT}:5432"
+    volumes:
+      - helpdesk_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${HELPDESK_DB_USER} -d ${HELPDESK_DB_NAME}",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+    networks:
+      - default
+      - helpdesk_private
+
+  ticketing:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # From Make (`.python-version`) or the environment; no silent pin here.
+        PYTHON_VERSION: ${PYTHON_VERSION}
+    restart: unless-stopped
+    environment:
+      # In-network DSN (host `.env` DATABASE_URL stays on localhost for tools).
+      DATABASE_URL: postgresql+psycopg://${HELPDESK_DB_USER}:${HELPDESK_DB_PASSWORD}@helpdesk-db:5432/${HELPDESK_DB_NAME}
+    command:
+      [
+        "uv",
+        "run",
+        "uvicorn",
+        "ticketing.main:create_app",
+        "--factory",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8080",
+        "--reload",
+        "--reload-dir",
+        "/app/src",
+      ]
+    ports:
+      - "127.0.0.1:${TICKETING_PORT}:8080"
+    volumes:
+      - ./src:/app/src
+    depends_on:
+      helpdesk-db:
+        condition: service_healthy
+    networks:
+      - default
+      - helpdesk_private
+
+volumes:
+  helpdesk_pgdata:
 
 networks:
   default:

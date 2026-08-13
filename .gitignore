@@ -13,6 +13,7 @@ htmlcov/
 
 # Local runtime state
 .data/
+.local/
 # Named volumes are used; keep these ignores if bind-mount dirs appear locally.
 dify/volumes/app/
 dify/volumes/db/
