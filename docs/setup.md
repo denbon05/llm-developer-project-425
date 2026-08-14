@@ -3,10 +3,12 @@
 Operational entry points for the private Dify + application stacks. Product
 behavior: [requirements.md](requirements.md), [architecture.md](architecture.md).
 
+Host tools (local run and tests): `uv`, plus Docker or Podman on `PATH`.
+
 ## Run (two terminals)
 
 ```bash
-make bootstrap           # env files + start-order hint
+make bootstrap           # env files, uv sync --all-extras, start-order hint
 make dify-stack-up       # terminal 1 — creates helpdesk_private
 make app-stack-up        # terminal 2 — GreenMail + helpdesk-db + ticketing
 ```
@@ -25,9 +27,9 @@ Stop with `make app-stack-down` then `make dify-stack-down`. Make uses
 `email-gateway` arrives in Phase 4. Scheduled escalate is
 `POST /v1/tickets/escalate-stale` (inactivity on `tickets.updated_at`).
 
-Unit/contract tests: `uv sync --all-extras && uv run pytest` (Testcontainers Postgres;
-Compose not required). Compose is the real topology and optional local curl
-against `localhost:18080`.
+Unit/contract tests: `make test` / `uv run pytest` after `make bootstrap`
+(Testcontainers Postgres; Compose not required). Compose is the real topology
+and optional local curl against `localhost:18080`.
 
 ## Pins
 
@@ -59,7 +61,9 @@ stall on “Syncing data” (Dify 1.16.1 Socket.IO pub/sub).
 
 ## Env files
 
-`make bootstrap` copies examples to gitignored `dify/.env` and `.env`.
+`make bootstrap` copies examples to gitignored `dify/.env` and `.env`, then
+runs `uv sync --all-extras` so host tools (`pytest`, Alembic, Ruff) have a
+`.venv`.
 App-stack Compose reads `.env` for `${VAR}` interpolation with **no**
 `:-` fallbacks — missing keys fail fast. Escalation is inactivity on
 `updated_at` (not calendar time from create). The default timer is
@@ -68,7 +72,7 @@ in `.env` only to override. `DATABASE_URL` is required for the
 ticketing process (Compose injects the in-network DSN; host `DATABASE_URL`
 in `.env` is for Alembic and other host tools).
 
-Compose uses `dify/.env` twice on purpose: `--project-directory dify` for YAML
+Compose uses `dify/.env` twice on purpose: `--env-file dify/.env` for YAML
 `${VAR}` interpolation, and service `env_file` for container injection. Never
 commit `.env` files, provider keys, or secrets in DSL.
 
@@ -77,14 +81,6 @@ commit `.env` files, provider keys, or secrets in DSL.
 Fresh volumes only: open `http://localhost:13080` and register. Suggested
 local values: `admin@example.test` / `local-dify-admin-change-me`.
 `INIT_PASSWORD` is an optional pre-install gate, **not** the login password.
-
-Reset later:
-
-```bash
-# same CLI as Make (docker or podman)
-docker compose -f dify/compose.yml --project-directory dify exec -it api \
-  flask reset-password
-```
 
 ## Yandex models (SEC-8) — document only in Phase 2
 

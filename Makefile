@@ -8,9 +8,9 @@ ifeq ($(CONTAINER_CLI),)
 $(error Neither docker nor podman found in PATH)
 endif
 
-# --project-directory loads that dir's .env for YAML ${VAR} interpolation.
+# --env-file loads that file for YAML ${VAR} interpolation (docker compose and podman-compose).
 # Service env_file (see dify/compose.yml) injects vars into containers — different step.
-DIFY_COMPOSE := $(CONTAINER_CLI) compose -f dify/compose.yml --project-directory dify
+DIFY_COMPOSE := $(CONTAINER_CLI) compose -f dify/compose.yml --env-file dify/.env
 APP_COMPOSE := $(CONTAINER_CLI) compose -f compose.yml
 
 # Drive Docker base image tag from .python-version (see Dockerfile ARG).
@@ -21,7 +21,7 @@ export PYTHON_VERSION
 
 help:
 	@echo "Phase 3 application stack (two-terminal foreground up):"
-	@echo "  make bootstrap              Create env files; print start order"
+	@echo "  make bootstrap              Env files + uv sync --all-extras; print start order"
 	@echo "  make dify-stack-up          Start Dify platform (creates helpdesk_private)"
 	@echo "  make app-stack-up           Start app stack: GreenMail + helpdesk-db + ticketing"
 	@echo "  make dify-stack-down        Stop Dify platform"
@@ -34,10 +34,12 @@ help:
 	@echo "  Compose CLI: $(CONTAINER_CLI)  (override CONTAINER_CLI=docker|podman)"
 
 bootstrap: dify-env app-env
-	@echo "Env files ready."
+	uv sync --all-extras
+	@echo "Env files and local .venv ready."
 	@echo "Terminal 1: make dify-stack-up   # creates helpdesk_private; start first"
 	@echo "Terminal 2: make app-stack-up    # joins helpdesk_private (external)"
-	@echo "Dify UI: http://127.0.0.1:13080  GreenMail API: http://127.0.0.1:8081"
+	@echo "Dify UI: http://127.0.0.1:13080  (first visit prompts you to create the admin account)"
+	@echo "GreenMail API: http://127.0.0.1:8081"
 	@echo "Ticketing HTTP: http://127.0.0.1:18080  MCP: /mcp"
 
 dify-stack-up: dify-env

@@ -6,7 +6,7 @@
 # Owns named network helpdesk_private (start this stack before the app stack).
 #
 # Env wiring (two different steps — do not collapse them):
-# 1) Project `.env` (via `--project-directory dify`, or CLI `--env-file`) feeds
+# 1) Project `.env` (via CLI `--env-file dify/.env`) feeds
 #    Compose ${VAR} interpolation when parsing this file (ports, passwords in
 #    environment:/command, etc.). Service env_file does NOT do that.
 # 2) x-dify-env / env_file injects the full `.env` into selected containers

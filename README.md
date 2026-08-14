@@ -29,11 +29,13 @@ tool argument, and one-way text masking. Platform setup:
 [docs/setup.md](docs/setup.md). Email gateway, knowledge corpus, and Dify
 helpdesk workflows are not in this slice.
 
+Host tools (local run and tests): `uv`, plus Docker or Podman on `PATH`.
+
 ```bash
-make bootstrap
+make bootstrap         # env files + uv sync --all-extras
 make dify-stack-up     # terminal 1
 make app-stack-up      # terminal 2 — GreenMail + helpdesk-db + ticketing
-uv sync --all-extras && uv run pytest
+make test              # or: uv run pytest
 ```
 
 ## Fixed v1 scope

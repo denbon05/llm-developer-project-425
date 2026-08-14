@@ -326,7 +326,7 @@ modeled.
 - The reviewed, secret-free Dify exports reconstruct workflow structure.
   Provider credentials stay in Dify's encrypted store; other secrets use
   gitignored local files with committed examples only.
-- Minimal Make targets cover env bootstrap and foreground stack up/down. Use
+- Minimal Make targets cover env/deps bootstrap and foreground stack up/down. Use
   Compose directly for logs/ps. Destructive volume deletion (`<cli> compose … down -v`) is manual
   and irreversible — document the risk before using it.
 
