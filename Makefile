@@ -1,4 +1,4 @@
-# Phase 3 application stack — Make wraps both Compose projects.
+# Application stack (GreenMail, helpdesk-db, ticketing, email-gateway).
 # Two-terminal workflow: each *-up runs foreground `<cli> compose up`.
 # Start Dify first (creates helpdesk_private); app stack joins it as external.
 
@@ -20,13 +20,13 @@ export PYTHON_VERSION
 .PHONY: help bootstrap test format migrate-create migrate-up
 
 help:
-	@echo "Phase 3 application stack (two-terminal foreground up):"
+	@echo "Application stack (two-terminal foreground up; includes email-gateway):"
 	@echo "  make bootstrap              Env files + uv sync --all-extras; print start order"
 	@echo "  make dify-stack-up          Start Dify platform (creates helpdesk_private)"
-	@echo "  make app-stack-up           Start app stack: GreenMail + helpdesk-db + ticketing"
+	@echo "  make app-stack-up           Start app stack: GreenMail + helpdesk-db + ticketing + email-gateway"
 	@echo "  make dify-stack-down        Stop Dify platform"
 	@echo "  make app-stack-down         Stop application stack"
-	@echo "  make test                   Run unit + contract pytest suite"
+	@echo "  make test                   Run pytest (fake Dify; GreenMail via Testcontainers)"
 	@echo "  make format                 Ruff format (src + tests)"
 	@echo "  make migrate-create m=\"…\" Autogenerate Alembic migration (helpdesk-db up)"
 	@echo "  make migrate-up             Apply pending migrations (alembic upgrade head)"
@@ -41,6 +41,7 @@ bootstrap: dify-env app-env
 	@echo "Dify UI: http://127.0.0.1:13080  (first visit prompts you to create the admin account)"
 	@echo "GreenMail API: http://127.0.0.1:8081"
 	@echo "Ticketing HTTP: http://127.0.0.1:18080  MCP: /mcp"
+	@echo "Email gateway: Compose service email-gateway (polls GreenMail; Dify via nginx)"
 
 dify-stack-up: dify-env
 	$(DIFY_COMPOSE) up

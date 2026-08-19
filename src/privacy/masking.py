@@ -1,13 +1,15 @@
 """One-way PII masking for pre-model and persistence seams.
 
-Replaces matches with placeholders (``[EMAIL]``, ``[PHONE]``, ``[CARD]``);
-not reversible encrypt/decrypt. Ticket/message text must be masked before
-durable business fields; raw transport mail is outside this invariant.
+Replaces matches with ``constants.PLACEHOLDER_*`` tokens; not reversible
+encrypt/decrypt. Ticket/message text must be masked before durable business
+fields; raw transport mail is outside this invariant.
 """
 
 from __future__ import annotations
 
 import re
+
+from privacy import constants
 
 # ISO/IEC 7812 primary account number (PAN) digit length.
 _CARD_DIGITS_MIN = 13
@@ -54,20 +56,20 @@ def _luhn_ok(digits: str) -> bool:
 
 
 def _mask_card(match: re.Match[str]) -> str:
-    """Replace a Luhn-valid card candidate with ``[CARD]``; else leave as-is."""
+    """Replace a Luhn-valid card candidate with the card placeholder."""
     raw = match.group(0)
     digits = re.sub(r"\D", "", raw)
     if _luhn_ok(digits):
-        return "[CARD]"
+        return constants.PLACEHOLDER_CARD
     return raw
 
 
 def _mask_phone(match: re.Match[str]) -> str:
-    """Replace a phone-like digit run with ``[PHONE]`` if length is in range."""
+    """Replace a phone-like digit run with the phone placeholder."""
     raw = match.group(0)
     digits = re.sub(r"\D", "", raw)
     if _PHONE_DIGITS_MIN <= len(digits) <= _PHONE_DIGITS_MAX:
-        return "[PHONE]"
+        return constants.PLACEHOLDER_PHONE
     return raw
 
 
@@ -77,7 +79,7 @@ def mask_text(text: str) -> str:
     Order is emails, then Luhn-valid cards, then phone-like values so card
     digit runs are not misclassified as phones and addresses stay intact.
     """
-    masked = _EMAIL_RE.sub("[EMAIL]", text)
+    masked = _EMAIL_RE.sub(constants.PLACEHOLDER_EMAIL, text)
     masked = _CARD_CANDIDATE_RE.sub(_mask_card, masked)
     masked = _PHONE_RE.sub(_mask_phone, masked)
     return masked

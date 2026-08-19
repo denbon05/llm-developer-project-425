@@ -32,6 +32,8 @@
 - Lint and format: Ruff
 - Tests: pytest
 - Public interfaces: explicit types (see requirements FR-11)
+- Constants: import the module (`from ticketing import constants`) and use
+  `constants.NAME`; do not `from …constants import NAME`
 - App frameworks and runtime architecture: follow `docs/architecture.md` when
   named; do not invent them here
 - Commits: Conventional Commits — `feat|fix|docs|chore|test|refactor|ci(scope): …`

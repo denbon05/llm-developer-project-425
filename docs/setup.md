@@ -10,7 +10,7 @@ Host tools (local run and tests): `uv`, plus Docker or Podman on `PATH`.
 ```bash
 make bootstrap           # env files, uv sync --all-extras, start-order hint
 make dify-stack-up       # terminal 1 — creates helpdesk_private
-make app-stack-up        # terminal 2 — GreenMail + helpdesk-db + ticketing
+make app-stack-up        # terminal 2 — GreenMail + helpdesk-db + ticketing + email-gateway
 ```
 
 Stop with `make app-stack-down` then `make dify-stack-down`. Make uses
@@ -22,14 +22,37 @@ Stop with `make app-stack-down` then `make dify-stack-down`. Make uses
 | Project | File | Role |
 | --- | --- | --- |
 | `helpdesk-dify` | `dify/compose.yml` | Dify, its Postgres, Weaviate, Ollama, Redis, sandbox; **creates** `helpdesk_private` |
-| `helpdesk-app` | `compose.yml` | GreenMail, helpdesk Postgres (ticket domain), ticketing; joins `helpdesk_private` as **external** |
+| `helpdesk-app` | `compose.yml` | GreenMail, helpdesk Postgres, ticketing, **email-gateway**; joins `helpdesk_private` as **external** |
 
-`email-gateway` arrives in Phase 4. Scheduled escalate is
-`POST /v1/tickets/escalate-stale` (inactivity on `tickets.updated_at`).
+Status: Phase 4 **email-gateway** is implemented (IMAP poll, mask, blocking
+Dify, SMTP, `\Seen`). Merge-gate uses fake Dify; live echo is opt-in.
+`email-gateway` depends on healthy GreenMail only (Dify down still starts;
+static acknowledgement path).
 
-Unit/contract tests: `make test` / `uv run pytest` after `make bootstrap`
-(Testcontainers Postgres; Compose not required). Compose is the real topology
-and optional local curl against `localhost:18080`.
+Escalate: a Dify daily Schedule Trigger app (not authored yet; Phase 8) will
+HTTP-call existing ticketing `POST /v1/tickets/escalate-stale` (inactivity on
+`tickets.updated_at`). Escalate rules stay in that endpoint.
+
+Unit/contract/gateway tests: `make test` / `uv run pytest` after
+`make bootstrap` (Testcontainers Postgres + GreenMail; fake Dify; Compose
+not required). Compose is the real topology and optional local curl against
+`localhost:18080`. Live Dify echo is opt-in, not merge-gate.
+
+## Dify Service API (email workflow)
+
+Get the app key in the **Workflow** app: left sidebar **API Access** (or
+Publish → Access API) → Create API Key. Put it in gitignored `.env` as
+`DIFY_EMAIL_HELPDESK_API_KEY` (placeholder already in `.env.example`).
+
+Call **blocking** Service API:
+
+`POST http://localhost:13080/v1/workflows/run`  
+Header: `Authorization` from `DIFY_EMAIL_HELPDESK_API_KEY`.
+
+In-network Compose `email-gateway`: `http://nginx:80/v1/workflows/run`.
+
+Committed echo slice: `dify/apps/email_helpdesk.yml` (Start→End, End emits
+`reply_text`). Phase 5 authors the full graph and re-exports.
 
 ## Pins
 
@@ -48,7 +71,7 @@ and optional local curl against `localhost:18080`.
 
 | Bind | Service |
 | --- | --- |
-| `localhost:13080` | Dify UI (nginx → web/api) |
+| `localhost:13080` | Dify UI and Service API (nginx → web/api) |
 | `localhost:5003` | Plugin daemon debug |
 | `localhost:3025` / `3143` / `8081` | GreenMail SMTP / IMAP / API |
 | `localhost:15432` | Helpdesk Postgres (local pytest / tools) |
@@ -84,27 +107,31 @@ local values: `admin@example.test` / `local-dify-admin-change-me`.
 
 ## Yandex models (SEC-8) — document only in Phase 2
 
-Yandex is the **only** allowed external model processor. Do **not** install the
-OpenAI provider or point at `api.openai.com`.
+**Yandex Cloud AI Studio** is the only supported external provider (many Studio
+FMs OK). Do **not** install the OpenAI provider, watsonx, Cohere, or Jina.
+Embedding stays local Ollama.
 
 There is usually no dedicated “Yandex” marketplace tile. Use Dify’s
 **OpenAI-API-compatible** provider with Yandex Cloud’s OpenAI-compatible
 foundation-models base URL, API key, folder/catalog id, and a Yandex model
 name. Store credentials only in Dify’s encrypted provider store.
 
-Live Yandex calls are **not** a Phase 2 gate (opt-in later). Ollama stays
+Live Yandex calls are **not** a Phase 2/4 gate (opt-in later). Ollama stays
 internal for embeddings (`http://ollama:11434`; pull `granite-embedding:30m`
-in Phase 6).
+in Phase 6). Retrieval later: bi-encoder then LLM-as-reranker (Studio FM,
+model TBD) — not a Cohere/Jina rerank slot.
 
 ## Phase 2 proof
 
 1. Both stacks up; GreenMail `GET http://127.0.0.1:8081/api/service/readiness` → 200.
-2. Studio Workflow Start → End (no LLM); run echoes an input. No handwritten
-   durable DSL under `dify/apps/` (FR-9; Phase 5 export).
+2. Studio Workflow Start → End (no LLM); run echoes an input. A committed
+   secret-free echo export lives at `dify/apps/email_helpdesk.yml` (End
+   `reply_text`). Full graph is Phase 5.
 3. Named volumes retain Dify Postgres / Weaviate across ordinary down/up.
 
 Learning checkpoint: Dify stack vs app stack isolation; Ollama local vs Yandex
-external; what survives restart (named volumes, not mailbox state).
+Cloud AI Studio external; what survives restart (named volumes, not mailbox
+state).
 
 ## Phase 3 ticketing
 
@@ -117,6 +144,8 @@ employee scope via `tickets.user_id` (MCP `user_id` tool argument,
 synthetic sender email); one-way text masking; append inserts a message
 and bumps `tickets.updated_at` (not ticket text or status); escalate is
 HTTP status-only on inactivity; no outbox table (SMTP is Phase 4 gateway).
+`create-ticket` still does not insert a `messages` row; the email workflow
+(Phase 5) will `append-message` the first user mail after create.
 
 Learning checkpoint: one deep ticketing interface protects invariants across
 MCP (LLM) and HTTP escalate-stale.

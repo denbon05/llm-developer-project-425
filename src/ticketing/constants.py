@@ -1,6 +1,4 @@
-"""Shared consts.
-Prefer ``constants.NAME`` at call sites (import the module, not names).
-"""
+"""Ticketing table names and other shared constants."""
 
 TABLE_TICKETS = "tickets"
 TABLE_MESSAGES = "messages"

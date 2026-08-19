@@ -1,5 +1,4 @@
-# Application stack — Phase 3 ticketing slice.
-# GreenMail + helpdesk Postgres + ticketing. email-gateway arrives in Phase 4.
+# Application stack — GreenMail, helpdesk Postgres, ticketing, email-gateway.
 # Joins helpdesk_private created by the Dify stack (start Dify first).
 # Variable values come from `.env` (see `.env.example`); no :- fallbacks here.
 
@@ -96,6 +95,36 @@ services:
       - ./src:/app/src
     depends_on:
       helpdesk-db:
+        condition: service_healthy
+    networks:
+      - default
+      - helpdesk_private
+
+  email-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        PYTHON_VERSION: ${PYTHON_VERSION}
+    restart: unless-stopped
+    environment:
+      IMAP_HOST: greenmail
+      IMAP_PORT: "3143"
+      SMTP_HOST: greenmail
+      SMTP_PORT: "3025"
+      IMAP_USER: ${IMAP_USER}
+      IMAP_PASSWORD: ${IMAP_PASSWORD}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      EMAIL_POLL_INTERVAL_SECONDS: ${EMAIL_POLL_INTERVAL_SECONDS}
+      DIFY_WORKFLOW_URL: http://nginx:80/v1/workflows/run
+      DIFY_EMAIL_HELPDESK_API_KEY: ${DIFY_EMAIL_HELPDESK_API_KEY}
+      CITATION_REPO_BASE: ${CITATION_REPO_BASE}
+    command: ["uv", "run", "email-gateway"]
+    volumes:
+      - ./src:/app/src
+    depends_on:
+      greenmail:
         condition: service_healthy
     networks:
       - default

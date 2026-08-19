@@ -16,6 +16,7 @@ from contracts.enums import (
     TicketCategory,
     TicketStatus,
 )
+from privacy import constants
 from ticketing.db import Message, Ticket
 from ticketing.mcp_server import (
     mcp_append_message,
@@ -55,7 +56,7 @@ async def test_create_ticket_text_and_other_category(
     try:
         ticket = await db_session.get(Ticket, created_ticket["ticket_id"])
         assert ticket is not None
-        assert "[EMAIL]" in ticket.text
+        assert constants.PLACEHOLDER_EMAIL in ticket.text
         assert "me@corp.test" not in ticket.text
         messages = (
             await db_session.scalars(
@@ -210,9 +211,9 @@ async def test_persistence_masks_pii_on_create(
         assert ticket is not None
         assert message is not None
         assert "mask@example.test" not in ticket.text
-        assert "[EMAIL]" in ticket.text
+        assert constants.PLACEHOLDER_EMAIL in ticket.text
         assert "4111111111111111" not in message.text
-        assert "[CARD]" in message.text
+        assert constants.PLACEHOLDER_CARD in message.text
     finally:
         await db_session.close()
 

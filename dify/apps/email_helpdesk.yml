@@ -1,0 +1,113 @@
+app:
+  description: ''
+  icon: 🤖
+  icon_background: '#FFEAD5'
+  icon_type: emoji
+  mode: workflow
+  name: email_helpdesk
+  use_icon_as_answer_icon: false
+dependencies: []
+kind: app
+version: 0.7.0
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload: {}
+    retriever_resource:
+      enabled: true
+    sensitive_word_avoidance:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        iteration_id: null
+        loop_id: null
+        sourceType: start
+        targetType: end
+      id: 1786730582147-source-1786731148916-target
+      source: '1786730582147'
+      sourceHandle: source
+      target: '1786731148916'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        selected: false
+        title: User Input
+        type: start
+        variables:
+        - default: ''
+          hint: ''
+          label: Subject
+          options: []
+          placeholder: ''
+          required: true
+          type: text-input
+          variable: subject
+        - default: ''
+          hint: ''
+          label: User Email
+          options: []
+          placeholder: ''
+          required: true
+          type: text-input
+          variable: user_email
+        - default: ''
+          hint: ''
+          label: Text
+          options: []
+          placeholder: ''
+          required: true
+          type: paragraph
+          variable: request_text
+      height: 161
+      id: '1786730582147'
+      position:
+        x: 80
+        y: 282
+      positionAbsolute:
+        x: 80
+        y: 282
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        outputs:
+        - value_selector:
+          - '1786730582147'
+          - request_text
+          value_type: string
+          variable: reply_text
+        selected: true
+        title: Output
+        type: end
+      height: 140
+      id: '1786731148916'
+      position:
+        x: 382
+        y: 282
+      positionAbsolute:
+        x: 382
+        y: 282
+      selected: true
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 0
+    viewport:
+      x: 0
+      y: 0
+      zoom: 1
+  rag_pipeline_variables: []

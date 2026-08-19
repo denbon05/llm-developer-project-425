@@ -17,14 +17,16 @@ documents.
   lifecycle status, masked **text** in `tickets.text` (set at create, not
   updated), conversation history in `messages`, `updated_at` as last
   activity time (create or append), and (for the course MVP) `user_id`
-  equal to the synthetic sender email used as the employee key.
+  equal to the synthetic sender email used as the employee key. When the
+  email workflow **opens** a ticket, both `tickets.text` (`create-ticket`)
+  and a first `messages` row for that inbound mail (`append-message`,
+  role `user`) exist. The MCP `create-ticket` tool itself does not insert
+  a message.
 - **Message** — one immutable contribution that always belongs to a ticket
   (`ticket_id` required), attributed to `user` or `agent`, with masked text.
   Agent rows may store `model` / `tokens_in` / `tokens_out` / `latency_ms`.
 - **Knowledge gap** — absence of sufficient reliable company knowledge to
   answer a legitimate help-desk request.
-- **Explicit ticket request** — an unambiguous employee instruction to create,
-  open, file, or log a ticket for a legitimate help-desk matter.
 - **Legitimate unsupported help-desk request** — an in-scope employee support
   request for which the available knowledge is not sufficient to give a
   grounded answer.

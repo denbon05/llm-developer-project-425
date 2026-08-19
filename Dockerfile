@@ -1,4 +1,4 @@
-# Application services (ticketing; email-gateway arrives in Phase 4).
+# Application services (ticketing default CMD; email-gateway overrides command).
 # PYTHON_VERSION comes from .python-version via compose/Make build-arg.
 # Dependencies via uv --frozen.
 ARG PYTHON_VERSION

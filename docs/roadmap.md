@@ -6,6 +6,8 @@ requirements, and architecture before the next phase starts. No implementation
 agent owns the whole system. Each phase updates affected documentation and
 ends with a verification gate and a short learning checkpoint.
 
+Phases 1–3 are historical (done). Current work is Phase 4.
+
 ## Phase 1 — Fix the design
 
 - **Owner:** bounded documentation author, followed by a fresh documentation
@@ -18,8 +20,10 @@ ends with a verification gate and a short learning checkpoint.
   concise, non-duplicative, and mutually consistent; calibrated parameters
   remain explicitly provisional where noted.
 - **Learning checkpoint:** explain the participants/roles, deterministic
-  routing rules, trust seams, module ownership, and why Dify remains
-  replaceable.
+  routing rules, trust seams, and module ownership. The gateway depends on
+  the small blocking HTTP contract (`/v1/workflows/run` + Start/End fields),
+  not Studio internals. Dify remains the orchestrator of the LLM/KB/MCP
+  graph.
 
 ## Phase 2 — Prove the private platform
 
@@ -44,7 +48,8 @@ ends with a verification gate and a short learning checkpoint.
   `list-my-tickets`, `append-message`), `user_id` as an MCP tool argument
   (synthetic sender email), persistence-time text masking, and escalate as
   status-only. No outbox/quarantine tables. No email gateway or Dify
-  workflows in this phase.
+  workflows in this phase. `create-ticket` does **not** insert a `messages`
+  row (invariant kept in later phases).
 - **Verification gate:** contract tests at HTTP and MCP seams cover categories
   (including `other`), user/agent roles, scoped list, create (`text` only),
   append for chat history, agent append with usage on a ticket (bumps `updated_at`, not
@@ -53,76 +58,79 @@ ends with a verification gate and a short learning checkpoint.
 - **Learning checkpoint:** explain how one deep ticketing interface protects
   business invariants across two adapters.
 
-## Phase 4 — Prove the email slice
+## Phase 4 — Prove the email slice (slim)
 
 - **Owner:** bounded email-gateway agent.
-- **Scope:** connect GreenMail to the gateway, the privacy module, the
-  pre-Dify toxicity/abuse word-list gate, a fake of the versioned Dify
-  interface, ticketing MCP (`create-ticket` / `list-my-tickets` /
-  `append-message`) and escalate HTTP, direct SMTP reply delivery,
-  and a configurable one-minute default poll (mailbox `\Seen` after success;
-  best-effort, at-least-once retries). No resolve-scope,
-  record-usage, or verify/reconcile HTTP.
-- **Verification gate:** deterministic GreenMail tests prove normalization,
-  attachment exclusion, limits, toxicity static replies without a Dify call,
-  pre-Dify one-way masking, restart recovery, and the documented SMTP
-  duplicate window.
+- **Scope:** Compose `email-gateway`. Gateway IMAP poll (generic IMAP;
+  GreenMail adapter; default 1 minute, configurable), normalize plain text /
+  sanitized HTML, ignore attachments, one-way mask via `src/privacy`,
+  blocking Dify Service API contract (fake in CI; live echo opt-in), SMTP
+  reply using the live mail-session recipient, IMAP `\Seen` after success,
+  restart recovery, documented SMTP duplicate window (one poll interval plus
+  blocking wait). Gateway regex intake: toxicity then hello (static SMTP, no
+  Dify). No gateway MCP, no escalate-in-gateway, no size/rate gate.
+- **Verification gate:** GreenMail tests against **fake Dify** for those
+  behaviors (normalization, attachments ignored, mask-before-Dify, blocking
+  contract, SMTP, `\Seen`, restart, duplicate window). Merge-gate stays on
+  the fake; local/opt-in may call live Dify echo.
 - **Learning checkpoint:** distinguish mailbox processing hints (`\Seen`) from
   receiver-visible email delivery guarantees and at-least-once internal
   ticket/message effects.
 
-## Phase 5 — Replace the fake with Dify
+## Phase 5 — Author the email Workflow
 
 - **Owner:** bounded Dify-workflow agent.
-- **Scope:** author the email helpdesk Workflow App in the UI node-by-node,
-  expose the agreed input/output contract over Workflow SSE, capture run/usage
-  metadata, and export reviewed secret-free DSL under `dify/apps/`.
-- **Verification gate:** the same gateway contract tests pass against fake and
-  a no-model Dify slice; malformed output and workflow failure yield a static
-  acknowledgement (no fail-open); no
-  Yandex-specific response shape leaks through the interface. This gate does
-  not claim to verify live Yandex behavior.
-- **Learning checkpoint:** show how the small interface permits replacement
-  while SSE metadata remains observable.
+- **Scope:** author `email_helpdesk` in the UI: `list-my-tickets` branch,
+  KB/MCP paths, End contract (`reply_text` / `ticket_id` / `citations`).
+  Re-export secret-free DSL. Same gateway tests against fake + no-model/live
+  slice. Malformed/failure → static acknowledgement, no fail-open (gateway
+  sends it). Not live Yandex verification.
+- **Verification gate:** gateway contract tests pass against fake and a
+  no-model Dify slice; malformed output and workflow failure yield a static
+  acknowledgement; no Yandex-specific response shape leaks through the
+  interface.
+- **Learning checkpoint:** show how the small blocking HTTP contract permits
+  replacement of Studio internals while Dify still orchestrates the graph.
 
-## Phase 6 — Build knowledge and evaluation
+## Phase 6 — Knowledge and evaluation
 
 - **Owner:** a separate bounded knowledge/evaluation agent, only after the
   contracts and source metadata rules are fixed.
 - **Scope:** create about eight synthetic English Markdown documents (within
   the required 5–10) and golden retrieval cases, ingest one
   `employee-helpdesk` knowledge base, and preserve stable trusted repository
-  source IDs/URLs. Eval suite folder layout is chosen in this phase (co-locate
-  cases and rubrics). This agent does not change application architecture.
-- **Verification gate:** reproducible re-ingestion and measured hybrid
-  retrieval meet the golden cases using local `granite-embedding:30m`; Top K
-  and threshold are recorded; no reranker or sensitive data is introduced.
+  source IDs/URLs to `knowledge_base/` paths. Eval suite folder layout is
+  chosen in this phase. Record `candidate_k=10` / `rerank_top_k=3` / `0.7`.
+  Bi-encoder measurement with local `granite-embedding:30m`. Yandex
+  LLM-as-reranker may still be TBD / Phase 7. No sensitive data. This agent
+  does not change application architecture.
+- **Verification gate:** reproducible re-ingestion and measured bi-encoder
+  retrieval meet the golden cases; recorded k/threshold values; no Cohere/Jina
+  rerank slot; no sensitive data.
 - **Learning checkpoint:** explain why Git is canonical, Weaviate is derived,
   and retrieval quality is measured rather than assumed.
 
-## Phase 7 — Integrate controlled intelligence
+## Phase 7 — Controlled intelligence
 
 - **Owner:** bounded Yandex/RAG integration agent.
-- **Scope:** add deterministic injection checks, bounded Yandex
-  injection/scope classification, ticket-context routing, retrieval evidence
-  gating (grounded cited email only; knowledge gap uses `create-ticket`
-  with `text` in `tickets.text`; further dialogue uses `append-message`),
-  grounded generation, trusted citations, and token accounting. Gateway
-  toxicity remains outside Dify.
-- **Verification gate:** merge-gate route tests use fake Dify behavior and local
-  dependencies. Real Yandex classifier/generator routes, live usage matching,
-  and full Dify/Yandex behavior are opt-in smoke/evaluation checks.
+- **Scope:** injection/scope, Yandex generator, evidence gating per the
+  ticket/KB table, LLM-rerank TBD, grounded citations, token accounting.
+  Toxicity stays a Dify node (not gateway).
+- **Verification gate:** merge-gate uses fake Dify and local dependencies.
+  Live Yandex classifier/generator, usage matching, and full Dify/Yandex
+  behavior are opt-in smoke/evaluation checks.
 - **Learning checkpoint:** identify where nondeterministic model behavior is
   constrained by deterministic gates, types, thresholds, and tools.
 
-## Phase 8 — Verify lifecycle and recovery
+## Phase 8 — Lifecycle and recovery
 
 - **Owner:** bounded lifecycle/verification agent, with final coordinating
   review.
-- **Scope:** scheduled escalate via private HTTP
-  (`POST /v1/tickets/escalate-stale`), plus negative paths, restore/re-ingestion
-  exercises, security checks, and full GreenMail system acceptance with
+- **Scope:** second Dify app (Schedule Trigger, daily / 24h) that **only**
+  HTTP-calls existing `POST /v1/tickets/escalate-stale`; plus negatives,
+  restore/re-ingestion, security checks, and GreenMail acceptance with
   local/fake model behavior. Escalate-stale already exists from Phase 3.
+  Dify does not own escalate rules.
 - **Verification gate:** every acceptance criterion in
   [requirements.md](requirements.md) has the required evidence: deterministic
   criteria run locally, while live-model criteria run opt-in and are reported

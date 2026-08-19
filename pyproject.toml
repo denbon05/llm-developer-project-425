@@ -27,6 +27,7 @@ dev = [
 
 [project.scripts]
 ticketing = "ticketing.main:main"
+email-gateway = "email_gateway.main:main"
 
 [build-system]
 requires = ["setuptools>=68"]
@@ -34,7 +35,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["contracts*", "privacy*", "ticketing*"]
+include = ["contracts*", "privacy*", "ticketing*", "email_gateway*"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
