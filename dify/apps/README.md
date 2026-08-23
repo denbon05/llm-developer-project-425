@@ -4,7 +4,7 @@ Secret-free Dify App DSL exports (FR-9: author in Studio, then export).
 
 | File | Phase | Purpose |
 | --- | --- | --- |
-| `email_helpdesk.yml` | 4 echo / 5 full | Gateway-facing Workflow: User Input start, blocking `/v1/workflows/run`. Committed slice is Start→End (no LLM); End emits at least `reply_text`. Gateway merge-gate uses a **fake** of this contract; live echo is opt-in. Phase 5 authors ticket/KB/MCP (toxicity/hello stay in the gateway) and re-exports. |
+| `email_helpdesk.yml` | 5 (no-model) | Gateway-facing Workflow: User Input start, blocking `/v1/workflows/run`. Committed DSL is the architecture topology with Code/Template stubs (MCP tool nodes, IF/ELSE, stub answer/categorizer/KB, one Variable Aggregator, End `reply_text` / `ticket_id`) — not a Start→End echo. Merge-gate uses a **fake** of this contract. Phase 6 replaces Query KB with Knowledge Retrieval; Phase 7 is live Yandex. Toxicity/hello stay in the gateway. |
 | *(escalate app)* | 8 | Schedule Trigger only; HTTP `POST /v1/tickets/escalate-stale`. Not authored yet. |
 
 No provider credentials in these files. App key lives in gitignored `.env`

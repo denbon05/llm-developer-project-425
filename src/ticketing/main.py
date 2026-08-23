@@ -47,7 +47,7 @@ def create_app(
         raise ValueError(
             "db_session_factory and db_engine must both be set or both omitted"
         )
-    # Path "/" under mount "/mcp" → public URL /mcp.
+    # Path "/" under mount "/mcp" → public URL /mcp/.
     # host=settings.host avoids localhost-only DNS rebinding defaults
     mcp_http = mcp.streamable_http_app(
         streamable_http_path="/",

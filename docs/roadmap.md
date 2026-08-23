@@ -6,7 +6,9 @@ requirements, and architecture before the next phase starts. No implementation
 agent owns the whole system. Each phase updates affected documentation and
 ends with a verification gate and a short learning checkpoint.
 
-Phases 1–3 are historical (done). Current work is Phase 4.
+Phases 1–5 are historical (done). Current work is Phase 6 (knowledge and
+evaluation). `list-my-tickets` already matches the Studio-binding contract
+(`text`, optional `statuses`).
 
 ## Phase 1 — Fix the design
 
@@ -80,15 +82,22 @@ Phases 1–3 are historical (done). Current work is Phase 4.
 ## Phase 5 — Author the email Workflow
 
 - **Owner:** bounded Dify-workflow agent.
-- **Scope:** author `email_helpdesk` in the UI: `list-my-tickets` branch,
-  KB/MCP paths, End contract (`reply_text` / `ticket_id` / `citations`).
-  Re-export secret-free DSL. Same gateway tests against fake + no-model/live
-  slice. Malformed/failure → static acknowledgement, no fail-open (gateway
-  sends it). Not live Yandex verification.
-- **Verification gate:** gateway contract tests pass against fake and a
-  no-model Dify slice; malformed output and workflow failure yield a static
-  acknowledgement; no Yandex-specific response shape leaks through the
-  interface.
+- **Scope:** author `email_helpdesk` in the UI as the graph in
+  [architecture.md](architecture.md) (early `list-my-tickets` tool node
+  bound to live ticketing, retrieve then answer LLM, non-closed vs KB-hit
+  vs knowledge-gap branches, sequential appends, categorizer only on the
+  gap path, End `reply_text` / `ticket_id` / `citations`). Re-export
+  secret-free no-model DSL (Code/Template stubs). Same gateway tests
+  against fake Dify. Malformed/failure → error log, no SMTP, leave UNSEEN
+  (retry next poll). Not live Yandex.
+- **Verification gate:** done. Committed `dify/apps/email_helpdesk.yml` is
+  the architecture topology with no-model Code/Template stubs (not an
+  echo). Merge-gate stays **fake Dify**. Malformed/failure skip SMTP and
+  leave UNSEEN. Live check: mail client as `employee1@example.test` **To:**
+  `support@example.test`; gateway polled; employee received the stub Dify
+  reply. Studio Preview: first mail creates ticket + two messages; second
+  mail same sender appends (no create CONFLICT). Phase 6 Knowledge
+  Retrieval; Phase 7 live Yandex.
 - **Learning checkpoint:** show how the small blocking HTTP contract permits
   replacement of Studio internals while Dify still orchestrates the graph.
 
@@ -113,9 +122,9 @@ Phases 1–3 are historical (done). Current work is Phase 4.
 ## Phase 7 — Controlled intelligence
 
 - **Owner:** bounded Yandex/RAG integration agent.
-- **Scope:** injection/scope, Yandex generator, evidence gating per the
-  ticket/KB table, LLM-rerank TBD, grounded citations, token accounting.
-  Toxicity stays a Dify node (not gateway).
+- **Scope:** injection/scope, live Yandex generator, LLM-as-reranker
+  (Studio FM, model TBD), categorizer SML, grounded citations, token
+  accounting. Toxicity/hello stay gateway regex (Phase 4).
 - **Verification gate:** merge-gate uses fake Dify and local dependencies.
   Live Yandex classifier/generator, usage matching, and full Dify/Yandex
   behavior are opt-in smoke/evaluation checks.
@@ -136,4 +145,4 @@ Phases 1–3 are historical (done). Current work is Phase 4.
   criteria run locally, while live-model criteria run opt-in and are reported
   separately rather than inferred from fakes.
 - **Learning checkpoint:** present the end-to-end trust story, failure
-  semantics, recovery procedure, remaining limitations, and tutor evidence.
+  semantics, recovery procedure, remaining limitations, and required evidence.

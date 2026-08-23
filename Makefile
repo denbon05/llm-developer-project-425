@@ -1,17 +1,16 @@
 # Application stack (GreenMail, helpdesk-db, ticketing, email-gateway).
-# Two-terminal workflow: each *-up runs foreground `<cli> compose up`.
+# Two-terminal workflow: each *-up runs foreground `docker compose up`.
 # Start Dify first (creates helpdesk_private); app stack joins it as external.
+# Docker Compose v2 only (Docker Desktop). Podman is not supported.
 
-# docker if present, else podman. Override: make CONTAINER_CLI=podman …
-CONTAINER_CLI ?= $(notdir $(firstword $(shell command -v docker 2>/dev/null) $(shell command -v podman 2>/dev/null)))
-ifeq ($(CONTAINER_CLI),)
-$(error Neither docker nor podman found in PATH)
+ifeq ($(shell command -v docker 2>/dev/null),)
+$(error docker not found in PATH; install Docker Desktop)
 endif
 
-# --env-file loads that file for YAML ${VAR} interpolation (docker compose and podman-compose).
+# --env-file loads that file for YAML ${VAR} interpolation.
 # Service env_file (see dify/compose.yml) injects vars into containers — different step.
-DIFY_COMPOSE := $(CONTAINER_CLI) compose -f dify/compose.yml --env-file dify/.env
-APP_COMPOSE := $(CONTAINER_CLI) compose -f compose.yml
+DIFY_COMPOSE := docker compose -f dify/compose.yml --env-file dify/.env
+APP_COMPOSE := docker compose -f compose.yml
 
 # Drive Docker base image tag from .python-version (see Dockerfile ARG).
 PYTHON_VERSION := $(shell tr -d '[:space:]' < .python-version)
@@ -31,7 +30,7 @@ help:
 	@echo "  make migrate-create m=\"…\" Autogenerate Alembic migration (helpdesk-db up)"
 	@echo "  make migrate-up             Apply pending migrations (alembic upgrade head)"
 	@echo "  make migrate-up ARGS=--sql  Print SQL only (Alembic offline mode)"
-	@echo "  Compose CLI: $(CONTAINER_CLI)  (override CONTAINER_CLI=docker|podman)"
+	@echo "  Compose: docker compose (v2; Docker Desktop)"
 
 bootstrap: dify-env app-env
 	uv sync --all-extras

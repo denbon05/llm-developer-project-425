@@ -22,7 +22,7 @@ _KEY_CITATIONS = "citations"
 # Dify marks a finished graph this way; other values are a failed run.
 _STATUS_SUCCEEDED = "succeeded"
 
-# Stable OutputsError messages (logged; SMTP then uses static ack).
+# Stable OutputsError messages (logged; not SMTP body text).
 _ERR_CITATIONS_NOT_JSON = "citations_not_json"
 _ERR_CITATIONS_NOT_LIST = "citations_not_list"
 _ERR_CITATION_NOT_STRING = "citation_not_string"
@@ -44,7 +44,7 @@ class ValidatedOutputs:
 
 
 class OutputsError(ValueError):
-    """Missing or malformed End outputs (static-ack path)."""
+    """Missing or malformed End outputs."""
 
 
 def _parse_citation_urls(raw: Any) -> list[str]:

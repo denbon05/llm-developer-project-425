@@ -105,17 +105,28 @@ async def mcp_create_ticket(
     return await _run(op)
 
 
-async def mcp_list_my_tickets(*, user_id: str) -> dict:
-    """List tickets for ``user_id`` only."""
+async def mcp_list_my_tickets(
+    *,
+    user_id: str,
+    statuses: list[str] | None = None,
+) -> dict:
+    """List tickets for ``user_id`` only.
+
+    ``statuses`` omitted/``None`` defaults to ``open``, ``escalated``,
+    and ``answered``. Empty ``statuses=[]`` returns no rows.
+    """
 
     async def op(service: TicketingService):
-        tickets = await service.list_my_tickets(user_id=user_id)
+        tickets = await service.list_my_tickets(
+            user_id=user_id, statuses=statuses
+        )
         return {
             "tickets": [
                 {
                     "ticket_id": ticket.ticket_id,
                     "category": ticket.category,
                     "status": ticket.status,
+                    "text": ticket.text,
                     "updated_at": ticket.updated_at.isoformat(),
                 }
                 for ticket in tickets
@@ -172,9 +183,12 @@ async def create_ticket(
 
 
 @mcp.tool(name="list-my-tickets")
-async def list_my_tickets(user_id: str) -> dict:
-    """List tickets for the ``user_id`` tool argument only."""
-    return await mcp_list_my_tickets(user_id=user_id)
+async def list_my_tickets(
+    user_id: str,
+    statuses: list[str] | None = None,
+) -> dict:
+    """List this user's tickets (masked text). ``statuses`` optional."""
+    return await mcp_list_my_tickets(user_id=user_id, statuses=statuses)
 
 
 @mcp.tool(name="append-message")

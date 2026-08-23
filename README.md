@@ -5,10 +5,11 @@
 
 
 An email help-desk assistant for employees. The **gateway** owns IMAP/SMTP;
-**Dify** is the brain. A knowledge hit with no open ticket is emailed with
-citations (no ticket, no `messages` row). A knowledge gap with no open
-ticket opens a ticket (`create-ticket`; `text` in `tickets.text`) **and**
-records the first user mail via `append-message`. An already-open ticket
+**Dify** is the brain (a Workflow graph; MCP via tool nodes). A knowledge
+hit with no non-`closed` ticket is emailed with citations (no ticket, no
+`messages` row). A knowledge gap with no non-`closed` ticket opens a ticket
+(`create-ticket`; `text` in `tickets.text`) **and** records the first user
+mail via `append-message`. A non-`closed` ticket (`open` or `escalated`)
 always appends user + agent and still retrieves. The employee cannot force
 a ticket when knowledge can answer.
 
@@ -16,20 +17,21 @@ This repository is an LLM-focused slice, not a full help-desk product.
 If an `open` ticket’s `updated_at` is older than the inactivity threshold
 (default 24h / `escalation_seconds`), it becomes `escalated` via scheduled
 HTTP. Dialogue via `append-message` refreshes `updated_at` and delays that
-step. After `escalated` is out of scope and not modeled. There is no
-operator UI or modeled human reply in this slice. `answered` and `closed`
-remain in the schema and are unused here.
+step. After `escalated`, later employee mail still gets an LLM reply and
+two appends; status stays `escalated`. There is no operator UI or modeled
+human reply in this slice. `answered` and `closed` remain in the schema
+and are unused here.
 
 ## Status
 
-**Phase 4** email gateway is in place: Compose `email-gateway` polls IMAP,
-masks via `src/privacy`, POSTs blocking Dify `…/v1/workflows/run`, SMTP-replies,
-then sets IMAP `\Seen`. Merge-gate / `make test` uses **fake Dify** (no live
-Studio or Yandex). Live echo against Dify is opt-in. A committed Start→End
-echo export is at `dify/apps/email_helpdesk.yml`. Platform setup:
+**Phase 5** is done: `dify/apps/email_helpdesk.yml` is the secret-free
+no-model Workflow graph (MCP tool nodes, IF/ELSE, Code/Template stubs,
+End `reply_text` / `ticket_id`) — not a Start→End echo. **Phase 6** is
+current (knowledge ingest). Merge-gate / `make test` uses **fake Dify**
+(no live Studio or paid models). Platform setup:
 [docs/setup.md](docs/setup.md).
 
-Host tools (local run and tests): `uv`, plus Docker or Podman on `PATH`.
+Host tools (local run and tests): `uv`, plus Docker Desktop (Compose v2) on `PATH`.
 
 ```bash
 make bootstrap         # env files + uv sync --all-extras
@@ -51,9 +53,9 @@ These bullets constrain the LLM slice above, not a human operator help-desk.
   tests; use English synthetic, non-sensitive content and ignore attachments.
 - Keep transport outside Dify. Mask PII before any Dify call. Toxicity/hello
   are gateway regex (static SMTP; no Dify). Ticket/KB routing is a Dify
-  graph (MCP only from Dify). Classifier/workflow outage → static
-  acknowledgement (no fail-open). Escalate is scheduled HTTP from a second
-  Dify app; rules stay in ticketing.
+  graph (MCP only from Dify). Gateway Dify HTTP/outputs failure → error
+  log, no SMTP, leave UNSEEN (no fail-open canned body). Escalate is
+  scheduled HTTP from a second Dify app; rules stay in ticketing.
 - Deploy as two pinned Compose projects on a private shared network
   (`compose.yml` and `dify/compose.yml`) and keep deterministic CI free of paid
   model calls.

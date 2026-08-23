@@ -203,9 +203,11 @@ services:
     # Debugging port bound to loopback only (local admin tooling).
     ports:
       - "127.0.0.1:${EXPOSE_PLUGIN_DEBUGGING_PORT:-5003}:${PLUGIN_DEBUGGING_PORT:-5003}"
+    # helpdesk_private: Studio MCP must resolve ticketing (not localhost).
     networks:
       - default
       - ssrf_proxy_network
+      - helpdesk_private
 
   # Squid egress proxy for sandbox/plugin SSRF controls.
   ssrf_proxy:
@@ -226,9 +228,11 @@ services:
       COREDUMP_DIR: /var/spool/squid
       SSRF_PROXY_ALLOW_PRIVATE_IPS: ${SSRF_PROXY_ALLOW_PRIVATE_IPS:-}
       SSRF_PROXY_ALLOW_PRIVATE_DOMAINS: ${SSRF_PROXY_ALLOW_PRIVATE_DOMAINS:-}
+    # helpdesk_private: Squid can reach allowlisted ticketing only.
     networks:
       - ssrf_proxy_network
       - default
+      - helpdesk_private
 
   # Loopback-only HTTP reverse proxy to web + api (no TLS in Phase 2).
   nginx:

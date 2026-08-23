@@ -18,8 +18,8 @@ from email_gateway.normalize import extract_body
 # Synthetic mailboxes (login:password@domain in GREENMAIL_OPTS).
 SUPPORT_EMAIL = "support@example.test"
 SUPPORT_PASSWORD = "support-pass"
-EMPLOYEE_EMAIL = "employee@example.test"
-EMPLOYEE_PASSWORD = "employee-pass"
+EMPLOYEE_EMAIL = "employee1@example.test"
+EMPLOYEE_PASSWORD = "employee1-pass"
 
 # GreenMail standalone test listeners (container-internal).
 GREENMAIL_SMTP_PORT = 3025

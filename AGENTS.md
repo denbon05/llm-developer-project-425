@@ -29,6 +29,7 @@
 ## Tooling
 
 - Package/environment: `uv`
+- Containers: Docker Compose v2 (`docker compose`); do not use Podman
 - Lint and format: Ruff
 - Tests: pytest
 - Public interfaces: explicit types (see requirements FR-11)

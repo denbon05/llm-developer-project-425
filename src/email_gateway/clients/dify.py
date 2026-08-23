@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from typing import Any
 
@@ -14,6 +15,12 @@ from email_gateway.outputs import OutputsError, ValidatedOutputs, parse_outputs
 
 logger = get_logger(__name__)
 
+# Dify error ``code`` tokens are short identifiers, never mail content.
+_DIFY_ERROR_CODE_RE = re.compile(r"^[A-Za-z0-9_]{1,64}$")
+_WORKFLOW_STATUS_VALUES = frozenset(
+    {"succeeded", "failed", "stopped", "running"}
+)
+
 
 @dataclass(frozen=True)
 class CallResult:
@@ -21,11 +28,17 @@ class CallResult:
 
     - ``outputs`` — set only when End fields passed validation.
     - ``workflow_run_id`` — ``None`` when Dify omitted it or we have no body.
+    - ``fail_reason`` — stable class of failure; ``None`` on success.
     """
 
     ok: bool
     outputs: ValidatedOutputs | None
     workflow_run_id: str | None
+    fail_reason: str | None = None
+    http_status: int | None = None
+    outputs_error: str | None = None
+    dify_error_code: str | None = None
+    workflow_status: str | None = None
 
 
 class Client:
@@ -75,22 +88,34 @@ class Client:
         except httpx.HTTPError as exc:
             logger.exception(
                 "dify_http_error",
-                extra={"exc_type": type(exc).__name__},
+                extra={
+                    "exc_type": type(exc).__name__,
+                    "fail_reason": constants.FAIL_HTTP_ERROR,
+                },
             )
             return CallResult(
                 ok=False,
                 outputs=None,
                 workflow_run_id=None,
+                fail_reason=constants.FAIL_HTTP_ERROR,
             )
         if response.status_code >= constants.HTTP_ERROR_STATUS_MIN:
-            logger.warning(
+            error_code = _safe_dify_error_code(_json_object(response))
+            logger.error(
                 "dify_http_status",
-                extra={"http_status": response.status_code},
+                extra={
+                    "http_status": response.status_code,
+                    "fail_reason": constants.FAIL_HTTP_STATUS,
+                    "dify_error_code": error_code,
+                },
             )
             return CallResult(
                 ok=False,
                 outputs=None,
                 workflow_run_id=None,
+                fail_reason=constants.FAIL_HTTP_STATUS,
+                http_status=response.status_code,
+                dify_error_code=error_code,
             )
         # Body: 2xx must still be JSON before we look at End outputs.
         try:
@@ -101,14 +126,18 @@ class Client:
                 extra={
                     "http_status": response.status_code,
                     "exc_type": type(exc).__name__,
+                    "fail_reason": constants.FAIL_BAD_JSON,
                 },
             )
             return CallResult(
                 ok=False,
                 outputs=None,
                 workflow_run_id=None,
+                fail_reason=constants.FAIL_BAD_JSON,
+                http_status=response.status_code,
             )
         run_id = _read_workflow_run_id(payload)
+        workflow_status = _read_workflow_status(payload)
         # Contract: HTTP+JSON succeeded; End outputs may still be unusable.
         try:
             outputs = parse_outputs(
@@ -116,10 +145,13 @@ class Client:
                 citation_repo_base=self._settings.citation_repo_base,
             )
         except OutputsError as exc:
-            logger.exception(
+            logger.error(
                 "dify_outputs_invalid",
                 extra={
                     "workflow_run_id": run_id,
+                    "fail_reason": constants.FAIL_OUTPUTS_INVALID,
+                    "outputs_error": str(exc),
+                    "workflow_status": workflow_status,
                     "exc_type": type(exc).__name__,
                 },
             )
@@ -127,6 +159,9 @@ class Client:
                 ok=False,
                 outputs=None,
                 workflow_run_id=run_id,
+                fail_reason=constants.FAIL_OUTPUTS_INVALID,
+                outputs_error=str(exc),
+                workflow_status=workflow_status,
             )
         logger.info(
             "dify_run_ok",
@@ -136,7 +171,38 @@ class Client:
             ok=True,
             outputs=outputs,
             workflow_run_id=run_id,
+            workflow_status=workflow_status,
         )
+
+
+def _json_object(response: httpx.Response) -> dict[str, Any] | None:
+    """Parse a JSON object body; ``None`` if missing or not an object."""
+    try:
+        payload = response.json()
+    except ValueError:
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+def _safe_dify_error_code(payload: dict[str, Any] | None) -> str | None:
+    """Return Dify ``code`` only when it is a short opaque token."""
+    if payload is None:
+        return None
+    code = payload.get("code")
+    if isinstance(code, str) and _DIFY_ERROR_CODE_RE.fullmatch(code):
+        return code
+    return None
+
+
+def _read_workflow_status(payload: dict[str, Any]) -> str | None:
+    """Allowlisted ``data.status`` only (never free-form error text)."""
+    data = payload.get("data")
+    if not isinstance(data, dict):
+        return None
+    status = data.get("status")
+    if isinstance(status, str) and status in _WORKFLOW_STATUS_VALUES:
+        return status
+    return None
 
 
 def _read_workflow_run_id(payload: dict[str, Any]) -> str | None:

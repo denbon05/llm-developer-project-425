@@ -17,7 +17,6 @@ logger = get_logger(__name__)
 
 # Log / extra ``reply_source`` values (not SMTP body text).
 _REPLY_WORKFLOW_OUTPUTS = "workflow_outputs"
-_REPLY_STATIC_ACK = "static_ack"
 
 
 @dataclass(frozen=True)
@@ -30,20 +29,16 @@ class OutboundReply:
 
 
 def build_outbound_from_workflow(
-    result: dify.CallResult, *, static_ack: str
-) -> OutboundReply:
-    """Map a blocking workflow result to an SMTP body."""
+    result: dify.CallResult,
+) -> OutboundReply | None:
+    """Map success to an ``OutboundReply``; otherwise ``None``."""
     if result.ok and result.outputs is not None:
         return OutboundReply(
             source=_REPLY_WORKFLOW_OUTPUTS,
             text=result.outputs.reply_text,
             workflow_run_id=result.workflow_run_id,
         )
-    return OutboundReply(
-        source=_REPLY_STATIC_ACK,
-        text=static_ack,
-        workflow_run_id=result.workflow_run_id,
-    )
+    return None
 
 
 class Processor:
@@ -83,7 +78,7 @@ class Processor:
         *,
         should_mark_seen: bool = True,
     ) -> None:
-        """Mask, optional Dify, SMTP; ``\\Seen`` only after send succeeds."""
+        """Mask, optional Dify, SMTP; no send or ``\\Seen`` on Dify failure."""
         if not message.sender:
             logger.warning(
                 "skip_no_sender",
@@ -107,10 +102,21 @@ class Processor:
                 subject=masked_subject,
                 request_text=masked_body,
             )
-            outbound = build_outbound_from_workflow(
-                workflow_result,
-                static_ack=self._settings.static_ack_text,
-            )
+            outbound = build_outbound_from_workflow(workflow_result)
+            if outbound is None:
+                logger.error(
+                    "workflow_failed",
+                    extra={
+                        "uid": message.uid,
+                        "fail_reason": workflow_result.fail_reason,
+                        "http_status": workflow_result.http_status,
+                        "outputs_error": workflow_result.outputs_error,
+                        "dify_error_code": workflow_result.dify_error_code,
+                        "workflow_status": workflow_result.workflow_status,
+                        "workflow_run_id": workflow_result.workflow_run_id,
+                    },
+                )
+                return
         sent = await asyncio.to_thread(
             self._mailbox.send_reply,
             to_addr=message.sender,

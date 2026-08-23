@@ -10,11 +10,11 @@ services:
     image: greenmail/standalone:2.1.11
     restart: unless-stopped
     environment:
-      # Users: support@example.test / support-pass, employee@example.test / employee-pass
+      # Users: support@example.test / support-pass, employee1@example.test / employee1-pass
       GREENMAIL_OPTS: >-
         -Dgreenmail.setup.test.all
         -Dgreenmail.hostname=0.0.0.0
-        -Dgreenmail.users=support:support-pass@example.test,employee:employee-pass@example.test
+        -Dgreenmail.users=support:support-pass@example.test,employee1:employee1-pass@example.test
         -Dgreenmail.verbose
     # Loopback-only publish for local IMAP/SMTP/API tests (SEC-7).
     ports:
@@ -22,13 +22,15 @@ services:
       - "127.0.0.1:${GREENMAIL_IMAP_PORT}:3143"
       - "127.0.0.1:${GREENMAIL_API_PORT}:8080"
     healthcheck:
+      # Image has no curl/wget; Ubuntu bash is built without /dev/tcp.
       test:
         - CMD-SHELL
         - >-
-          bash -ec 'exec 3<>/dev/tcp/127.0.0.1:8080;
-          printf "GET /api/service/readiness HTTP/1.0\r\nHost: localhost\r\n\r\n" >&3;
-          IFS=" " read -r _ status _ <&3;
-          test "$$status" = 200'
+          perl -e 'use IO::Socket::INET;
+          my $$s = IO::Socket::INET->new(PeerAddr => "127.0.0.1:8080") or exit 1;
+          print $$s "GET /api/service/readiness HTTP/1.0\r\nHost: localhost\r\n\r\n";
+          my $$line = <$$s>;
+          exit($$line =~ m{HTTP/1.[01] 200} ? 0 : 1)'
       interval: 5s
       timeout: 3s
       retries: 20

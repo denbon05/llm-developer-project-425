@@ -17,6 +17,10 @@ _SAFE_EXTRA = (
     "seen",
     "count",
     "exc_type",
+    "fail_reason",
+    "outputs_error",
+    "dify_error_code",
+    "workflow_status",
 )
 
 

@@ -164,7 +164,6 @@ def _imap_login(client: imaplib.IMAP4, user: str, password: str) -> None:
         logger.warning(
             "imap_login_retry_local_part",
             extra={"exc_type": type(exc).__name__},
-            exc_info=True,
         )
         client.login(_parse_local_part(user), password)
 
@@ -180,7 +179,6 @@ def _smtp_login(smtp: smtplib.SMTP, user: str, password: str) -> None:
         logger.warning(
             "smtp_login_retry_local_part",
             extra={"exc_type": type(exc).__name__},
-            exc_info=True,
         )
         smtp.login(_parse_local_part(user), password)
 

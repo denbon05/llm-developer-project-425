@@ -30,18 +30,304 @@ workflow:
         iteration_id: null
         loop_id: null
         sourceType: start
-        targetType: end
-      id: 1786730582147-source-1786731148916-target
+        targetType: tool
+      id: 1786730582147-source-1787408944712-target
+      selected: false
       source: '1786730582147'
       sourceHandle: source
-      target: '1786731148916'
+      target: '1787408944712'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        iteration_id: null
+        loop_id: null
+        sourceType: tool
+        targetType: code
+      id: 1787408944712-source-1787415783237-target
+      selected: false
+      source: '1787408944712'
+      sourceHandle: source
+      target: '1787415783237'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        iteration_id: null
+        loop_id: null
+        sourceType: code
+        targetType: if-else
+      id: 1787415783237-source-1787415956320-target
+      selected: false
+      source: '1787415783237'
+      sourceHandle: source
+      target: '1787415956320'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        iteration_id: null
+        loop_id: null
+        sourceType: if-else
+        targetType: template-transform
+      id: 1787415956320-false-17874208449750-target
+      selected: false
+      source: '1787415956320'
+      sourceHandle: 'false'
+      target: '17874208449750'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        iteration_id: null
+        loop_id: null
+        sourceType: if-else
+        targetType: code
+      id: 1787415956320-true-1787479405381-target
+      selected: false
+      source: '1787415956320'
+      sourceHandle: 'true'
+      target: '1787479405381'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        iteration_id: null
+        loop_id: null
+        sourceType: template-transform
+        targetType: tool
+      id: 1787416104790-source-1787418110266-target
+      selected: false
+      source: '1787416104790'
+      sourceHandle: source
+      target: '1787418110266'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        iteration_id: null
+        loop_id: null
+        sourceType: code
+        targetType: tool
+      id: 1787416196302-source-1787418110266-target
+      selected: false
+      source: '1787416196302'
+      sourceHandle: source
+      target: '1787418110266'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        iteration_id: null
+        loop_id: null
+        sourceType: tool
+        targetType: code
+      id: 1787418110266-source-1787418417198-target
+      selected: false
+      source: '1787418110266'
+      sourceHandle: source
+      target: '1787418417198'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        iteration_id: null
+        loop_id: null
+        sourceType: tool
+        targetType: tool
+      id: 1787418286718-source-1787418649631-target
+      selected: false
+      source: '1787418286718'
+      sourceHandle: source
+      target: '1787418649631'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        iteration_id: null
+        loop_id: null
+        sourceType: code
+        targetType: tool
+      id: 1787418417198-source-1787418286718-target
+      selected: false
+      source: '1787418417198'
+      sourceHandle: source
+      target: '1787418286718'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        iteration_id: null
+        loop_id: null
+        sourceType: tool
+        targetType: variable-aggregator
+      id: 1787418649631-source-1787485694956-target
+      selected: false
+      source: '1787418649631'
+      sourceHandle: source
+      target: '1787485694956'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        iteration_id: null
+        loop_id: null
+        sourceType: template-transform
+        targetType: tool
+      id: 17874208449750-source-17874208944560-target
+      selected: false
+      source: '17874208449750'
+      sourceHandle: source
+      target: '17874208944560'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        iteration_id: null
+        loop_id: null
+        sourceType: tool
+        targetType: tool
+      id: 17874208944560-source-17874209012360-target
+      selected: false
+      source: '17874208944560'
+      sourceHandle: source
+      target: '17874209012360'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: null
+        isInLoop: false
+        iteration_id: null
+        loop_id: null
+        sourceType: tool
+        targetType: variable-aggregator
+      id: 17874209012360-source-1787485694956-target
+      selected: false
+      source: '17874209012360'
+      sourceHandle: source
+      target: '1787485694956'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        iteration_id: null
+        loop_id: null
+        sourceType: code
+        targetType: if-else
+      id: 1787479405381-source-1787479761026-target
+      selected: false
+      source: '1787479405381'
+      sourceHandle: source
+      target: '1787479761026'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        iteration_id: null
+        loop_id: null
+        sourceType: if-else
+        targetType: template-transform
+      id: 1787479761026-false-1787416104790-target
+      selected: false
+      source: '1787479761026'
+      sourceHandle: 'false'
+      target: '1787416104790'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        iteration_id: null
+        loop_id: null
+        sourceType: if-else
+        targetType: code
+      id: 1787479761026-false-1787416196302-target
+      selected: false
+      source: '1787479761026'
+      sourceHandle: 'false'
+      target: '1787416196302'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        iteration_id: null
+        loop_id: null
+        sourceType: if-else
+        targetType: template-transform
+      id: 1787479761026-true-1787479879565-target
+      selected: false
+      source: '1787479761026'
+      sourceHandle: 'true'
+      target: '1787479879565'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: null
+        isInLoop: false
+        iteration_id: null
+        loop_id: null
+        sourceType: template-transform
+        targetType: variable-aggregator
+      id: 1787479879565-source-1787485694956-target
+      selected: false
+      source: '1787479879565'
+      sourceHandle: source
+      target: '1787485694956'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: null
+        isInLoop: false
+        iteration_id: null
+        loop_id: null
+        sourceType: variable-aggregator
+        targetType: end
+      id: 1787485694956-source-1787418710934-target
+      source: '1787485694956'
+      sourceHandle: source
+      target: '1787418710934'
       targetHandle: target
       type: custom
       zIndex: 0
     nodes:
     - data:
+        desc: Expected email data to handle
         selected: false
-        title: User Input
+        title: Input
         type: start
         variables:
         - default: ''
@@ -68,14 +354,962 @@ workflow:
           required: true
           type: paragraph
           variable: request_text
-      height: 161
+      height: 189
       id: '1786730582147'
       position:
-        x: 80
-        y: 282
+        x: 58
+        y: 276
       positionAbsolute:
-        x: 80
-        y: 282
+        x: 58
+        y: 276
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        desc: Fetch user active tickets
+        is_team_authorization: true
+        meta: null
+        paramSchemas:
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          input_schema: null
+          label:
+            en_US: user_id
+            ja_JP: user_id
+            pt_BR: user_id
+            zh_Hans: user_id
+          llm_description: ''
+          max: null
+          min: null
+          multiple: false
+          name: user_id
+          options: []
+          placeholder: null
+          precision: null
+          required: true
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          input_schema:
+            anyOf:
+            - items:
+                type: string
+              type: array
+            - type: 'null'
+            default: null
+            title: Statuses
+          label:
+            en_US: statuses
+            ja_JP: statuses
+            pt_BR: statuses
+            zh_Hans: statuses
+          llm_description: ''
+          max: null
+          min: null
+          multiple: false
+          name: statuses
+          options: []
+          placeholder: null
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: array
+        params:
+          statuses: ''
+          user_id: ''
+        plugin_id: ''
+        plugin_unique_identifier: ''
+        provider_icon:
+          background: '#E4FBCC'
+          content: 🎫
+        provider_icon_dark: null
+        provider_id: ticketing
+        provider_name: ticketing
+        provider_show_name: ticketing
+        provider_type: mcp
+        selected: false
+        title: list-user-tickets
+        tool_configurations: {}
+        tool_description: List this user's tickets (masked text). ``statuses`` optional.
+        tool_label: list-my-tickets
+        tool_name: list-my-tickets
+        tool_node_version: '2'
+        tool_parameters:
+          statuses:
+            type: constant
+            value: null
+          user_id:
+            type: mixed
+            value: '{{#1786730582147.user_email#}}'
+        type: tool
+      height: 112
+      id: '1787408944712'
+      position:
+        x: 364.5777661021839
+        y: 279.86092828048794
+      positionAbsolute:
+        x: 364.5777661021839
+        y: 279.86092828048794
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        code: "def main(json: list) -> dict:\n    payload = json[0] if json else {}\n\
+          \    tickets = payload.get(\"tickets\") or []\n    if not tickets:\n   \
+          \     return {\"ticket_id\": \"\"}\n    return {\"ticket_id\": str(tickets[0].get(\"\
+          ticket_id\") or \"\")}"
+        code_language: python3
+        outputs:
+          ticket_id:
+            children: null
+            type: string
+        selected: false
+        title: Parse tickets
+        type: code
+        variables:
+        - value_selector:
+          - '1787408944712'
+          - json
+          value_type: array[object]
+          variable: json
+      height: 52
+      id: '1787415783237'
+      position:
+        x: 661.6057930571415
+        y: 315.7798859888118
+      positionAbsolute:
+        x: 661.6057930571415
+        y: 315.7798859888118
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: empty
+            id: 228e7659-8c10-40fe-94d4-3a8b671d933b
+            value: ''
+            varType: string
+            variable_selector:
+            - '1787415783237'
+            - ticket_id
+          id: 'true'
+          logical_operator: and
+        selected: false
+        title: IF/ELSE
+        type: if-else
+      height: 140
+      id: '1787415956320'
+      position:
+        x: 952.5467005740295
+        y: 333.3599575003908
+      positionAbsolute:
+        x: 952.5467005740295
+        y: 333.3599575003908
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        selected: false
+        template: 'Stub reply for: {{request_text}}'
+        title: Answer with ticket (stub)
+        type: template-transform
+        variables:
+        - value_selector:
+          - '1786730582147'
+          - request_text
+          value_type: string
+          variable: request_text
+      height: 52
+      id: '1787416104790'
+      position:
+        x: 1942.3682108303237
+        y: 329.44825611525175
+      positionAbsolute:
+        x: 1942.3682108303237
+        y: 329.44825611525175
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        code: "def main(subject: str, text: str) -> dict: \n    return {\"category\"\
+          : \"other\"}\n"
+        code_language: python3
+        outputs:
+          category:
+            children: null
+            type: string
+        selected: false
+        title: Categorizer (stub)
+        type: code
+        variables:
+        - value_selector:
+          - '1786730582147'
+          - subject
+          value_type: string
+          variable: subject
+        - value_selector:
+          - '1786730582147'
+          - request_text
+          value_type: string
+          variable: text
+      height: 52
+      id: '1787416196302'
+      position:
+        x: 1942.3682108303237
+        y: 237.83778218218112
+      positionAbsolute:
+        x: 1942.3682108303237
+        y: 237.83778218218112
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        is_team_authorization: true
+        meta: null
+        paramSchemas:
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          input_schema: null
+          label:
+            en_US: user_id
+            ja_JP: user_id
+            pt_BR: user_id
+            zh_Hans: user_id
+          llm_description: ''
+          max: null
+          min: null
+          multiple: false
+          name: user_id
+          options: []
+          placeholder: null
+          precision: null
+          required: true
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          input_schema: null
+          label:
+            en_US: category
+            ja_JP: category
+            pt_BR: category
+            zh_Hans: category
+          llm_description: ''
+          max: null
+          min: null
+          multiple: false
+          name: category
+          options: []
+          placeholder: null
+          precision: null
+          required: true
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          input_schema: null
+          label:
+            en_US: text
+            ja_JP: text
+            pt_BR: text
+            zh_Hans: text
+          llm_description: ''
+          max: null
+          min: null
+          multiple: false
+          name: text
+          options: []
+          placeholder: null
+          precision: null
+          required: true
+          scope: null
+          template: null
+          type: string
+        params:
+          category: ''
+          text: ''
+          user_id: ''
+        plugin_id: ''
+        plugin_unique_identifier: ''
+        provider_icon:
+          background: '#E4FBCC'
+          content: 🎫
+        provider_icon_dark: null
+        provider_id: ticketing
+        provider_name: ticketing
+        provider_show_name: ticketing
+        provider_type: mcp
+        selected: false
+        title: create-ticket
+        tool_configurations: {}
+        tool_description: Create one scoped ticket; ``user_id`` is sender email.
+        tool_label: create-ticket
+        tool_name: create-ticket
+        tool_node_version: '2'
+        tool_parameters:
+          category:
+            type: mixed
+            value: '{{#1787416196302.category#}}'
+          text:
+            type: mixed
+            value: '{{#1786730582147.request_text#}}'
+          user_id:
+            type: mixed
+            value: '{{#1786730582147.user_email#}}'
+        type: tool
+      height: 84
+      id: '1787418110266'
+      position:
+        x: 2268.781826101078
+        y: 280.18478431053063
+      positionAbsolute:
+        x: 2268.781826101078
+        y: 280.18478431053063
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        desc: ''
+        is_team_authorization: true
+        meta: null
+        paramSchemas:
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          input_schema: null
+          label:
+            en_US: user_id
+            ja_JP: user_id
+            pt_BR: user_id
+            zh_Hans: user_id
+          llm_description: ''
+          max: null
+          min: null
+          multiple: false
+          name: user_id
+          options: []
+          placeholder: null
+          precision: null
+          required: true
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          input_schema: null
+          label:
+            en_US: ticket_id
+            ja_JP: ticket_id
+            pt_BR: ticket_id
+            zh_Hans: ticket_id
+          llm_description: ''
+          max: null
+          min: null
+          multiple: false
+          name: ticket_id
+          options: []
+          placeholder: null
+          precision: null
+          required: true
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          input_schema: null
+          label:
+            en_US: text
+            ja_JP: text
+            pt_BR: text
+            zh_Hans: text
+          llm_description: ''
+          max: null
+          min: null
+          multiple: false
+          name: text
+          options: []
+          placeholder: null
+          precision: null
+          required: true
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          input_schema: null
+          label:
+            en_US: role
+            ja_JP: role
+            pt_BR: role
+            zh_Hans: role
+          llm_description: ''
+          max: null
+          min: null
+          multiple: false
+          name: role
+          options: []
+          placeholder: null
+          precision: null
+          required: true
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          input_schema: null
+          label:
+            en_US: model
+            ja_JP: model
+            pt_BR: model
+            zh_Hans: model
+          llm_description: ''
+          max: null
+          min: null
+          multiple: false
+          name: model
+          options: []
+          placeholder: null
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          input_schema: null
+          label:
+            en_US: tokens_in
+            ja_JP: tokens_in
+            pt_BR: tokens_in
+            zh_Hans: tokens_in
+          llm_description: ''
+          max: null
+          min: null
+          multiple: false
+          name: tokens_in
+          options: []
+          placeholder: null
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: number
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          input_schema: null
+          label:
+            en_US: tokens_out
+            ja_JP: tokens_out
+            pt_BR: tokens_out
+            zh_Hans: tokens_out
+          llm_description: ''
+          max: null
+          min: null
+          multiple: false
+          name: tokens_out
+          options: []
+          placeholder: null
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: number
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          input_schema: null
+          label:
+            en_US: latency_ms
+            ja_JP: latency_ms
+            pt_BR: latency_ms
+            zh_Hans: latency_ms
+          llm_description: ''
+          max: null
+          min: null
+          multiple: false
+          name: latency_ms
+          options: []
+          placeholder: null
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: number
+        params:
+          latency_ms: ''
+          model: ''
+          role: ''
+          text: ''
+          ticket_id: ''
+          tokens_in: ''
+          tokens_out: ''
+          user_id: ''
+        plugin_id: ''
+        plugin_unique_identifier: ''
+        provider_icon:
+          background: '#E4FBCC'
+          content: 🎫
+        provider_icon_dark: null
+        provider_id: ticketing
+        provider_name: ticketing
+        provider_show_name: ticketing
+        provider_type: mcp
+        selected: false
+        title: append-user-message
+        tool_configurations: {}
+        tool_description: Insert one message (``role`` user/agent) on an existing
+          ticket.
+        tool_label: append-message
+        tool_name: append-message
+        tool_node_version: '2'
+        tool_parameters:
+          latency_ms:
+            type: constant
+            value: null
+          model:
+            type: mixed
+            value: null
+          role:
+            type: mixed
+            value: user
+          text:
+            type: mixed
+            value: '{{#1786730582147.request_text#}}'
+          ticket_id:
+            type: mixed
+            value: '{{#1787418417198.ticket_id#}}'
+          tokens_in:
+            type: constant
+            value: null
+          tokens_out:
+            type: constant
+            value: null
+          user_id:
+            type: mixed
+            value: '{{#1786730582147.user_email#}}'
+        type: tool
+      height: 84
+      id: '1787418286718'
+      position:
+        x: 2892.184047102362
+        y: 254.97685390169318
+      positionAbsolute:
+        x: 2892.184047102362
+        y: 254.97685390169318
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        code: "\ndef main(json: dict):\n    ticket_id = json[0][\"ticket_id\"]\n \
+          \   return {\n        \"ticket_id\": ticket_id,\n    }\n"
+        code_language: python3
+        outputs:
+          ticket_id:
+            children: null
+            type: string
+        selected: false
+        title: Parse created ticket
+        type: code
+        variables:
+        - value_selector:
+          - '1787418110266'
+          - json
+          value_type: array[object]
+          variable: json
+      height: 52
+      id: '1787418417198'
+      position:
+        x: 2575.924261637099
+        y: 291.336811402084
+      positionAbsolute:
+        x: 2575.924261637099
+        y: 291.336811402084
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        is_team_authorization: true
+        meta: null
+        paramSchemas:
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          input_schema: null
+          label:
+            en_US: user_id
+            ja_JP: user_id
+            pt_BR: user_id
+            zh_Hans: user_id
+          llm_description: ''
+          max: null
+          min: null
+          multiple: false
+          name: user_id
+          options: []
+          placeholder: null
+          precision: null
+          required: true
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          input_schema: null
+          label:
+            en_US: ticket_id
+            ja_JP: ticket_id
+            pt_BR: ticket_id
+            zh_Hans: ticket_id
+          llm_description: ''
+          max: null
+          min: null
+          multiple: false
+          name: ticket_id
+          options: []
+          placeholder: null
+          precision: null
+          required: true
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          input_schema: null
+          label:
+            en_US: text
+            ja_JP: text
+            pt_BR: text
+            zh_Hans: text
+          llm_description: ''
+          max: null
+          min: null
+          multiple: false
+          name: text
+          options: []
+          placeholder: null
+          precision: null
+          required: true
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          input_schema: null
+          label:
+            en_US: role
+            ja_JP: role
+            pt_BR: role
+            zh_Hans: role
+          llm_description: ''
+          max: null
+          min: null
+          multiple: false
+          name: role
+          options: []
+          placeholder: null
+          precision: null
+          required: true
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          input_schema: null
+          label:
+            en_US: model
+            ja_JP: model
+            pt_BR: model
+            zh_Hans: model
+          llm_description: ''
+          max: null
+          min: null
+          multiple: false
+          name: model
+          options: []
+          placeholder: null
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          input_schema: null
+          label:
+            en_US: tokens_in
+            ja_JP: tokens_in
+            pt_BR: tokens_in
+            zh_Hans: tokens_in
+          llm_description: ''
+          max: null
+          min: null
+          multiple: false
+          name: tokens_in
+          options: []
+          placeholder: null
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: number
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          input_schema: null
+          label:
+            en_US: tokens_out
+            ja_JP: tokens_out
+            pt_BR: tokens_out
+            zh_Hans: tokens_out
+          llm_description: ''
+          max: null
+          min: null
+          multiple: false
+          name: tokens_out
+          options: []
+          placeholder: null
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: number
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          input_schema: null
+          label:
+            en_US: latency_ms
+            ja_JP: latency_ms
+            pt_BR: latency_ms
+            zh_Hans: latency_ms
+          llm_description: ''
+          max: null
+          min: null
+          multiple: false
+          name: latency_ms
+          options: []
+          placeholder: null
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: number
+        params:
+          latency_ms: ''
+          model: ''
+          role: ''
+          text: ''
+          ticket_id: ''
+          tokens_in: ''
+          tokens_out: ''
+          user_id: ''
+        plugin_id: ''
+        plugin_unique_identifier: ''
+        provider_icon:
+          background: '#E4FBCC'
+          content: 🎫
+        provider_icon_dark: null
+        provider_id: ticketing
+        provider_name: ticketing
+        provider_show_name: ticketing
+        provider_type: mcp
+        selected: false
+        title: append-agent-message
+        tool_configurations: {}
+        tool_description: Insert one message (``role`` user/agent) on an existing
+          ticket.
+        tool_label: append-message
+        tool_name: append-message
+        tool_node_version: '2'
+        tool_parameters:
+          latency_ms:
+            type: constant
+            value: null
+          model:
+            type: mixed
+            value: null
+          role:
+            type: mixed
+            value: agent
+          text:
+            type: mixed
+            value: '{{#1787416104790.output#}}'
+          ticket_id:
+            type: mixed
+            value: '{{#1787418417198.ticket_id#}}'
+          tokens_in:
+            type: constant
+            value: null
+          tokens_out:
+            type: constant
+            value: null
+          user_id:
+            type: mixed
+            value: '{{#1786730582147.user_email#}}'
+        type: tool
+      height: 84
+      id: '1787418649631'
+      position:
+        x: 3194.184047102362
+        y: 254.97685390169318
+      positionAbsolute:
+        x: 3194.184047102362
+        y: 254.97685390169318
       selected: false
       sourcePosition: right
       targetPosition: left
@@ -85,29 +1319,759 @@ workflow:
     - data:
         outputs:
         - value_selector:
-          - '1786730582147'
-          - request_text
-          value_type: string
+          - '1787485694956'
+          - ticket_id
+          - output
+          value_type: object
+          variable: ticket_id
+        - value_selector:
+          - '1787485694956'
+          - reply_text
+          - output
+          value_type: object
           variable: reply_text
-        selected: true
-        title: Output
+        selected: false
+        title: Result Output
         type: end
-      height: 140
-      id: '1786731148916'
+      height: 114
+      id: '1787418710934'
       position:
-        x: 382
-        y: 282
+        x: 3931.068502640187
+        y: 213.7784198788368
       positionAbsolute:
-        x: 382
-        y: 282
+        x: 3931.068502640187
+        y: 213.7784198788368
       selected: true
       sourcePosition: right
       targetPosition: left
       type: custom
       width: 242
       zIndex: 0
+    - data:
+        desc: ''
+        isInIteration: false
+        isInLoop: false
+        selected: false
+        template: 'Stub reply for: {{request_text}}'
+        title: Answer follow-up (stub)
+        type: template-transform
+        variables:
+        - value_selector:
+          - '1786730582147'
+          - request_text
+          value_type: string
+          variable: request_text
+      height: 52
+      id: '17874208449750'
+      position:
+        x: 1271.2725695914396
+        y: 454.7977037722308
+      positionAbsolute:
+        x: 1271.2725695914396
+        y: 454.7977037722308
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        desc: ''
+        isInIteration: false
+        isInLoop: false
+        is_team_authorization: true
+        meta: null
+        paramSchemas:
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          input_schema: null
+          label:
+            en_US: user_id
+            ja_JP: user_id
+            pt_BR: user_id
+            zh_Hans: user_id
+          llm_description: ''
+          max: null
+          min: null
+          multiple: false
+          name: user_id
+          options: []
+          placeholder: null
+          precision: null
+          required: true
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          input_schema: null
+          label:
+            en_US: ticket_id
+            ja_JP: ticket_id
+            pt_BR: ticket_id
+            zh_Hans: ticket_id
+          llm_description: ''
+          max: null
+          min: null
+          multiple: false
+          name: ticket_id
+          options: []
+          placeholder: null
+          precision: null
+          required: true
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          input_schema: null
+          label:
+            en_US: text
+            ja_JP: text
+            pt_BR: text
+            zh_Hans: text
+          llm_description: ''
+          max: null
+          min: null
+          multiple: false
+          name: text
+          options: []
+          placeholder: null
+          precision: null
+          required: true
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          input_schema: null
+          label:
+            en_US: role
+            ja_JP: role
+            pt_BR: role
+            zh_Hans: role
+          llm_description: ''
+          max: null
+          min: null
+          multiple: false
+          name: role
+          options: []
+          placeholder: null
+          precision: null
+          required: true
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          input_schema: null
+          label:
+            en_US: model
+            ja_JP: model
+            pt_BR: model
+            zh_Hans: model
+          llm_description: ''
+          max: null
+          min: null
+          multiple: false
+          name: model
+          options: []
+          placeholder: null
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          input_schema: null
+          label:
+            en_US: tokens_in
+            ja_JP: tokens_in
+            pt_BR: tokens_in
+            zh_Hans: tokens_in
+          llm_description: ''
+          max: null
+          min: null
+          multiple: false
+          name: tokens_in
+          options: []
+          placeholder: null
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: number
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          input_schema: null
+          label:
+            en_US: tokens_out
+            ja_JP: tokens_out
+            pt_BR: tokens_out
+            zh_Hans: tokens_out
+          llm_description: ''
+          max: null
+          min: null
+          multiple: false
+          name: tokens_out
+          options: []
+          placeholder: null
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: number
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          input_schema: null
+          label:
+            en_US: latency_ms
+            ja_JP: latency_ms
+            pt_BR: latency_ms
+            zh_Hans: latency_ms
+          llm_description: ''
+          max: null
+          min: null
+          multiple: false
+          name: latency_ms
+          options: []
+          placeholder: null
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: number
+        params:
+          latency_ms: ''
+          model: ''
+          role: ''
+          text: ''
+          ticket_id: ''
+          tokens_in: ''
+          tokens_out: ''
+          user_id: ''
+        plugin_id: ''
+        plugin_unique_identifier: ''
+        provider_icon:
+          background: '#E4FBCC'
+          content: 🎫
+        provider_icon_dark: null
+        provider_id: ticketing
+        provider_name: ticketing
+        provider_show_name: ticketing
+        provider_type: mcp
+        selected: false
+        title: append-user-message
+        tool_configurations: {}
+        tool_description: Insert one message (``role`` user/agent) on an existing
+          ticket.
+        tool_label: append-message
+        tool_name: append-message
+        tool_node_version: '2'
+        tool_parameters:
+          latency_ms:
+            type: constant
+            value: null
+          model:
+            type: mixed
+            value: null
+          role:
+            type: mixed
+            value: user
+          text:
+            type: mixed
+            value: '{{#1786730582147.request_text#}}'
+          ticket_id:
+            type: mixed
+            value: '{{#1787415783237.ticket_id#}}'
+          tokens_in:
+            type: constant
+            value: null
+          tokens_out:
+            type: constant
+            value: null
+          user_id:
+            type: mixed
+            value: '{{#1786730582147.user_email#}}'
+        type: tool
+      height: 84
+      id: '17874208944560'
+      position:
+        x: 1624.1411813249922
+        y: 470.57473943362487
+      positionAbsolute:
+        x: 1624.1411813249922
+        y: 470.57473943362487
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        desc: ''
+        isInIteration: false
+        isInLoop: false
+        is_team_authorization: true
+        meta: null
+        paramSchemas:
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          input_schema: null
+          label:
+            en_US: user_id
+            ja_JP: user_id
+            pt_BR: user_id
+            zh_Hans: user_id
+          llm_description: ''
+          max: null
+          min: null
+          multiple: false
+          name: user_id
+          options: []
+          placeholder: null
+          precision: null
+          required: true
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          input_schema: null
+          label:
+            en_US: ticket_id
+            ja_JP: ticket_id
+            pt_BR: ticket_id
+            zh_Hans: ticket_id
+          llm_description: ''
+          max: null
+          min: null
+          multiple: false
+          name: ticket_id
+          options: []
+          placeholder: null
+          precision: null
+          required: true
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          input_schema: null
+          label:
+            en_US: text
+            ja_JP: text
+            pt_BR: text
+            zh_Hans: text
+          llm_description: ''
+          max: null
+          min: null
+          multiple: false
+          name: text
+          options: []
+          placeholder: null
+          precision: null
+          required: true
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          input_schema: null
+          label:
+            en_US: role
+            ja_JP: role
+            pt_BR: role
+            zh_Hans: role
+          llm_description: ''
+          max: null
+          min: null
+          multiple: false
+          name: role
+          options: []
+          placeholder: null
+          precision: null
+          required: true
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          input_schema: null
+          label:
+            en_US: model
+            ja_JP: model
+            pt_BR: model
+            zh_Hans: model
+          llm_description: ''
+          max: null
+          min: null
+          multiple: false
+          name: model
+          options: []
+          placeholder: null
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          input_schema: null
+          label:
+            en_US: tokens_in
+            ja_JP: tokens_in
+            pt_BR: tokens_in
+            zh_Hans: tokens_in
+          llm_description: ''
+          max: null
+          min: null
+          multiple: false
+          name: tokens_in
+          options: []
+          placeholder: null
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: number
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          input_schema: null
+          label:
+            en_US: tokens_out
+            ja_JP: tokens_out
+            pt_BR: tokens_out
+            zh_Hans: tokens_out
+          llm_description: ''
+          max: null
+          min: null
+          multiple: false
+          name: tokens_out
+          options: []
+          placeholder: null
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: number
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          input_schema: null
+          label:
+            en_US: latency_ms
+            ja_JP: latency_ms
+            pt_BR: latency_ms
+            zh_Hans: latency_ms
+          llm_description: ''
+          max: null
+          min: null
+          multiple: false
+          name: latency_ms
+          options: []
+          placeholder: null
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: number
+        params:
+          latency_ms: ''
+          model: ''
+          role: ''
+          text: ''
+          ticket_id: ''
+          tokens_in: ''
+          tokens_out: ''
+          user_id: ''
+        plugin_id: ''
+        plugin_unique_identifier: ''
+        provider_icon:
+          background: '#E4FBCC'
+          content: 🎫
+        provider_icon_dark: null
+        provider_id: ticketing
+        provider_name: ticketing
+        provider_show_name: ticketing
+        provider_type: mcp
+        selected: false
+        title: append-agent-message
+        tool_configurations: {}
+        tool_description: Insert one message (``role`` user/agent) on an existing
+          ticket.
+        tool_label: append-message
+        tool_name: append-message
+        tool_node_version: '2'
+        tool_parameters:
+          latency_ms:
+            type: constant
+            value: null
+          model:
+            type: mixed
+            value: null
+          role:
+            type: mixed
+            value: agent
+          text:
+            type: mixed
+            value: '{{#17874208449750.output#}}'
+          ticket_id:
+            type: mixed
+            value: '{{#1787415783237.ticket_id#}}'
+          tokens_in:
+            type: constant
+            value: null
+          tokens_out:
+            type: constant
+            value: null
+          user_id:
+            type: mixed
+            value: '{{#1786730582147.user_email#}}'
+        type: tool
+      height: 84
+      id: '17874209012360'
+      position:
+        x: 1952.8425428193195
+        y: 470.57473943362487
+      positionAbsolute:
+        x: 1952.8425428193195
+        y: 470.57473943362487
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        code: "def main(subject: str, text: str) -> dict:\n    return {\"has_kb_hit\"\
+          : False}\n"
+        code_language: python3
+        outputs:
+          has_kb_hit:
+            children: null
+            type: boolean
+        selected: false
+        title: Query KB
+        type: code
+        variables:
+        - value_selector:
+          - '1786730582147'
+          - subject
+          value_type: string
+          variable: subject
+        - value_selector:
+          - '1786730582147'
+          - request_text
+          value_type: string
+          variable: text
+      height: 52
+      id: '1787479405381'
+      position:
+        x: 1271.2725695914396
+        y: 309.90848372295875
+      positionAbsolute:
+        x: 1271.2725695914396
+        y: 309.90848372295875
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: is
+            id: 5f442450-a58d-4be9-ba25-e9407b60575f
+            value: true
+            varType: boolean
+            variable_selector:
+            - '1787479405381'
+            - has_kb_hit
+          id: 'true'
+          logical_operator: and
+        selected: false
+        title: If KB hint exists
+        type: if-else
+      height: 148
+      id: '1787479761026'
+      position:
+        x: 1610.368399553501
+        y: 171.8989959065163
+      positionAbsolute:
+        x: 1610.368399553501
+        y: 171.8989959065163
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        selected: false
+        template: Some reply to {{ request_text }}
+        title: Answer only (stub)
+        type: template-transform
+        variables:
+        - value_selector:
+          - '1786730582147'
+          - request_text
+          value_type: string
+          variable: request_text
+      height: 52
+      id: '1787479879565'
+      position:
+        x: 1942.3682108303237
+        y: 142.19871808702962
+      positionAbsolute:
+        x: 1942.3682108303237
+        y: 142.19871808702962
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        advanced_settings:
+          group_enabled: true
+          groups:
+          - groupId: 78f5a931-f388-409e-b233-c5ddca707677
+            group_name: reply_text
+            output_type: string
+            variables:
+            - - '1787416104790'
+              - output
+            - - '17874208449750'
+              - output
+            - - '1787479879565'
+              - output
+          - groupId: dacca6d6-94cc-4eb3-b191-a63bc16d2958
+            group_name: ticket_id
+            output_type: string
+            variables:
+            - - '1787418417198'
+              - ticket_id
+            - - '1787415783237'
+              - ticket_id
+        output_type: any
+        selected: true
+        title: Variable Aggregator
+        type: variable-aggregator
+        variables: []
+      height: 213
+      id: '1787485694956'
+      position:
+        x: 3564.4777491861364
+        y: 149.4417070258187
+      positionAbsolute:
+        x: 3564.4777491861364
+        y: 149.4417070258187
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
     viewport:
-      x: 0
-      y: 0
-      zoom: 1
+      x: -1009.4369074308156
+      y: 221.61764506687433
+      zoom: 0.5180140536944281
   rag_pipeline_variables: []

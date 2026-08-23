@@ -22,8 +22,13 @@ from contracts.enums import (
 )
 from contracts.models import EscalateStaleResponse, TicketSummary
 from privacy.masking import mask_text
+from ticketing import constants
 from ticketing.config import Settings
 from ticketing.db import Message, Ticket, new_id, utcnow
+
+_STATUS_BY_VALUE: dict[str, TicketStatus] = {
+    status.value: status for status in TicketStatus
+}
 
 
 class DomainError(Exception):
@@ -118,13 +123,45 @@ class TicketingService:
             category=category,
         )
 
-    async def list_my_tickets(self, *, user_id: str) -> list[TicketSummary]:
-        """List tickets for ``user_id`` only."""
+    def _parse_list_statuses(
+        self, statuses: list[str] | None
+    ) -> list[TicketStatus]:
+        """Resolve list filter; unknown strings are ``NOT_ELIGIBLE``."""
+        if statuses is None:
+            return list(constants.DEFAULT_LIST_STATUSES)
+        parsed: list[TicketStatus] = []
+        for raw in statuses:
+            matched = _STATUS_BY_VALUE.get(raw)
+            if matched is None:
+                raise DomainError(
+                    DomainErrorCode.NOT_ELIGIBLE,
+                    "unknown ticket status",
+                )
+            parsed.append(matched)
+        return parsed
+
+    async def list_my_tickets(
+        self,
+        *,
+        user_id: str,
+        statuses: list[str] | None = None,
+    ) -> list[TicketSummary]:
+        """List tickets for ``user_id`` only.
+
+        ``statuses`` omitted/``None`` defaults to ``open``, ``escalated``,
+        and ``answered``. Empty ``statuses=[]`` returns no rows.
+        """
         user_id = self._require_user_id(user_id)
+        status_filter = self._parse_list_statuses(statuses)
+        if not status_filter:
+            return []
         tickets = (
             await self.db_session.scalars(
                 select(Ticket)
-                .where(Ticket.user_id == user_id)
+                .where(
+                    Ticket.user_id == user_id,
+                    Ticket.status.in_(status_filter),
+                )
                 .order_by(Ticket.updated_at.desc())
             )
         ).all()
@@ -133,6 +170,7 @@ class TicketingService:
                 ticket_id=ticket.id,
                 category=ticket.category,
                 status=ticket.status,
+                text=ticket.text,
                 updated_at=ticket.updated_at,
             )
             for ticket in tickets

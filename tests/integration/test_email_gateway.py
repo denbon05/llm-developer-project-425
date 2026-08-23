@@ -24,6 +24,7 @@ from .greenmail import (
     SUPPORT_PASSWORD,
     GreenMailEndpoints,
     deliver_message,
+    list_inbox_bodies,
     list_unseen_uids,
     make_text_mail,
     wait_for_inbox_bodies,
@@ -311,11 +312,11 @@ async def test_duplicate_window_when_seen_skipped(
 
 
 @pytest.mark.asyncio
-async def test_dify_http_failure_sends_static_ack(
+async def test_dify_http_failure_leaves_unseen(
     greenmail: GreenMailEndpoints,
     gateway_settings: Settings,
 ) -> None:
-    """HTTP 500 SMTP-sends the static ack, not inbound text; then ``\\Seen``."""
+    """HTTP 500 skips SMTP, leaves UNSEEN, and retries on the next poll."""
     deliver_message(
         greenmail,
         make_text_mail(subject="outage", body=_OUTAGE_BODY),
@@ -324,21 +325,20 @@ async def test_dify_http_failure_sends_static_ack(
 
     fake_dify = FakeDify(mode=FakeDify.MODE_HTTP_ERROR)
     await _run_one_poll_cycle(gateway_settings, fake_dify)
+    await _run_one_poll_cycle(gateway_settings, fake_dify)
 
-    reply_bodies = wait_for_inbox_bodies(
-        greenmail, EMPLOYEE_EMAIL, EMPLOYEE_PASSWORD
-    )
-    assert any(constants.STATIC_ACK_TEXT in item for item in reply_bodies)
-    assert all(_OUTAGE_BODY not in item for item in reply_bodies)
-    assert list_unseen_uids(greenmail, SUPPORT_EMAIL, SUPPORT_PASSWORD) == []
+    assert list_inbox_bodies(greenmail, EMPLOYEE_EMAIL, EMPLOYEE_PASSWORD) == []
+    # Non-empty: inbound mail stayed UNSEEN.
+    assert list_unseen_uids(greenmail, SUPPORT_EMAIL, SUPPORT_PASSWORD)
+    assert len(fake_dify.requests) == _DUPLICATE_WINDOW_WORKFLOW_CALLS
 
 
 @pytest.mark.asyncio
-async def test_missing_reply_text_sends_static_ack(
+async def test_missing_reply_text_leaves_unseen(
     greenmail: GreenMailEndpoints,
     gateway_settings: Settings,
 ) -> None:
-    """Missing End reply_text is not fail-open: static ack only."""
+    """Missing End reply_text is not fail-open: no SMTP, mail stays UNSEEN."""
     deliver_message(
         greenmail,
         make_text_mail(subject="malformed", body=_MALFORMED_BODY),
@@ -348,19 +348,17 @@ async def test_missing_reply_text_sends_static_ack(
     fake_dify = FakeDify(mode=FakeDify.MODE_MISSING_REPLY)
     await _run_one_poll_cycle(gateway_settings, fake_dify)
 
-    reply_bodies = wait_for_inbox_bodies(
-        greenmail, EMPLOYEE_EMAIL, EMPLOYEE_PASSWORD
-    )
-    assert any(constants.STATIC_ACK_TEXT in item for item in reply_bodies)
-    assert all(_MALFORMED_BODY not in item for item in reply_bodies)
+    assert list_inbox_bodies(greenmail, EMPLOYEE_EMAIL, EMPLOYEE_PASSWORD) == []
+    # Non-empty: inbound mail stayed UNSEEN.
+    assert list_unseen_uids(greenmail, SUPPORT_EMAIL, SUPPORT_PASSWORD)
 
 
 @pytest.mark.asyncio
-async def test_citation_outside_base_sends_static_ack(
+async def test_citation_outside_base_leaves_unseen(
     greenmail: GreenMailEndpoints,
     gateway_settings: Settings,
 ) -> None:
-    """Citation outside the repo base is rejected; workflow text is not sent."""
+    """Citation outside the repo base is not SMTP'd; mail stays UNSEEN."""
     deliver_message(
         greenmail,
         make_text_mail(subject="cite", body=_CITE_BODY),
@@ -370,11 +368,9 @@ async def test_citation_outside_base_sends_static_ack(
     fake_dify = FakeDify(mode=FakeDify.MODE_BAD_CITATIONS)
     await _run_one_poll_cycle(gateway_settings, fake_dify)
 
-    reply_bodies = wait_for_inbox_bodies(
-        greenmail, EMPLOYEE_EMAIL, EMPLOYEE_PASSWORD
-    )
-    assert any(constants.STATIC_ACK_TEXT in item for item in reply_bodies)
-    assert all(_REJECTED_WORKFLOW_REPLY not in item for item in reply_bodies)
+    assert list_inbox_bodies(greenmail, EMPLOYEE_EMAIL, EMPLOYEE_PASSWORD) == []
+    # Non-empty: inbound mail stayed UNSEEN.
+    assert list_unseen_uids(greenmail, SUPPORT_EMAIL, SUPPORT_PASSWORD)
 
 
 @pytest.mark.asyncio

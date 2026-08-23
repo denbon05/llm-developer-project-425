@@ -15,6 +15,7 @@ class TicketSummary(BaseModel):
     ticket_id: str
     category: TicketCategory
     status: TicketStatus
+    text: str
     updated_at: datetime
 
 
