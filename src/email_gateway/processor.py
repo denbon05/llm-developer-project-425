@@ -3,25 +3,26 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from dataclasses import dataclass
+from typing import Any
 
 import httpx
 
 from email_gateway.clients import dify, mailbox
 from email_gateway.config import Settings
-from email_gateway.logging_config import get_logger
 from email_gateway.replies import match_static_reply
 from privacy.masking import mask_text
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
-# Log / extra ``reply_source`` values (not SMTP body text).
+# ``OutboundReply.source`` when the body came from workflow End outputs.
 _REPLY_WORKFLOW_OUTPUTS = "workflow_outputs"
 
 
 @dataclass(frozen=True)
 class OutboundReply:
-    """SMTP body the processor will send, plus log extras."""
+    """SMTP body, which path produced it, and optional workflow run id."""
 
     source: str
     text: str
@@ -39,6 +40,20 @@ def build_outbound_from_workflow(
             workflow_run_id=result.workflow_run_id,
         )
     return None
+
+
+def _copy_failure_fields(uid: str, result: dify.CallResult) -> dict[str, Any]:
+    """Copy ``uid`` and ``CallResult`` failure fields into a dict."""
+    return {
+        "uid": uid,
+        "fail_reason": result.fail_reason,
+        "http_status": result.http_status,
+        "outputs_error": result.outputs_error,
+        "dify_error_code": result.dify_error_code,
+        "workflow_status": result.workflow_status,
+        "workflow_run_id": result.workflow_run_id,
+        "exc_type": result.exc_type,
+    }
 
 
 class Processor:
@@ -87,6 +102,7 @@ class Processor:
             return
         masked_subject = mask_text(message.subject)
         masked_body = mask_text(message.body)
+        # Toxicity / hello: static SMTP body, no Dify.
         static_reply = match_static_reply(
             subject=masked_subject, body=masked_body
         )
@@ -95,7 +111,6 @@ class Processor:
                 source=static_reply.source, text=static_reply.text
             )
         else:
-            # no static reply, proceed with real workflow call
             # Blocking Service API: wait for End outputs, not a stream.
             workflow_result = await self._dify.run_blocking_workflow(
                 user_email=message.sender,
@@ -106,15 +121,7 @@ class Processor:
             if outbound is None:
                 logger.error(
                     "workflow_failed",
-                    extra={
-                        "uid": message.uid,
-                        "fail_reason": workflow_result.fail_reason,
-                        "http_status": workflow_result.http_status,
-                        "outputs_error": workflow_result.outputs_error,
-                        "dify_error_code": workflow_result.dify_error_code,
-                        "workflow_status": workflow_result.workflow_status,
-                        "workflow_run_id": workflow_result.workflow_run_id,
-                    },
+                    extra=_copy_failure_fields(message.uid, workflow_result),
                 )
                 return
         sent = await asyncio.to_thread(
@@ -126,7 +133,7 @@ class Processor:
         seen = False
         if sent and should_mark_seen:
             try:
-                # mark as seen only after successful send
+                # ``\Seen`` only after SMTP accepted the reply.
                 await asyncio.to_thread(self._mailbox.mark_seen, message.uid)
                 seen = True
             except Exception as exc:

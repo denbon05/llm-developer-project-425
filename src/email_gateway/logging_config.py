@@ -1,4 +1,9 @@
-"""JSON logs with opaque refs only (SEC-5): no subject/body/recipient."""
+"""JSON lines on stderr for the email-gateway process.
+
+Each line is one object: ``level``, ``logger``, ``msg``, plus any of
+``_EXTRA_LOG_KEYS`` present on the record. Call sites pass those as
+``extra={...}``. Subject, body, and recipient are not extra keys.
+"""
 
 from __future__ import annotations
 
@@ -7,8 +12,8 @@ import logging
 import logging.config
 from typing import Any
 
-# Extra keys that may appear on LogRecord (never subject/body/recipient).
-_SAFE_EXTRA = (
+# Extra keys copied onto the JSON object (stdlib ``logger.info(..., extra=)``).
+_EXTRA_LOG_KEYS = (
     "uid",
     "reply_source",
     "skip_reason",
@@ -25,16 +30,16 @@ _SAFE_EXTRA = (
 
 
 class JsonFormatter(logging.Formatter):
-    """One JSON object per line; extra fields are an allowlist."""
+    """One JSON object per line; extras limited to ``_EXTRA_LOG_KEYS``."""
 
     def format(self, record: logging.LogRecord) -> str:
-        """Build one JSON object: level, logger, msg, allowlisted extras."""
+        """Build ``level``, ``logger``, ``msg``, then listed extras."""
         payload: dict[str, Any] = {
             "level": record.levelname,
             "logger": record.name,
             "msg": record.getMessage(),
         }
-        for key in _SAFE_EXTRA:
+        for key in _EXTRA_LOG_KEYS:
             if hasattr(record, key):
                 payload[key] = getattr(record, key)
         if record.exc_info:
@@ -61,7 +66,6 @@ LOGGING_CONFIG: dict[str, Any] = {
     "loggers": {
         "email_gateway": {
             "handlers": ["default"],
-            # INFO: operational events only; bodies never go in extra.
             "level": "INFO",
             "propagate": False,
         },
@@ -77,8 +81,3 @@ LOGGING_CONFIG: dict[str, Any] = {
 def configure_logging() -> None:
     """Apply JSON dictConfig for the email-gateway logger tree."""
     logging.config.dictConfig(LOGGING_CONFIG)
-
-
-def get_logger(name: str) -> logging.Logger:
-    """Logger for ``name``; use ``__name__`` under the email_gateway tree."""
-    return logging.getLogger(name)

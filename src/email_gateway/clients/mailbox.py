@@ -6,6 +6,7 @@ This client talks to a generic mailbox. It does not know about GreenMail.
 from __future__ import annotations
 
 import imaplib
+import logging
 import smtplib
 from dataclasses import dataclass
 from email.message import EmailMessage, Message
@@ -14,10 +15,9 @@ from email.policy import default
 
 from email_gateway import constants
 from email_gateway.config import Settings
-from email_gateway.logging_config import get_logger
 from email_gateway.normalize import normalize_inbound
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 # IMAP tokens (RFC 3501). Quoted so they are not mistaken for Python names.
 _IMAP_INBOX = "INBOX"
@@ -123,7 +123,6 @@ class Client:
                 extra={"exc_type": type(exc).__name__},
             )
             return False
-        logger.info("smtp_sent")
         return True
 
     def _imap_connect(self) -> imaplib.IMAP4:

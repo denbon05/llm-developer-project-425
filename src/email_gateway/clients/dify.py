@@ -10,10 +10,7 @@ import httpx
 
 from email_gateway import constants
 from email_gateway.config import Settings, build_authorization_header
-from email_gateway.logging_config import get_logger
 from email_gateway.outputs import OutputsError, ValidatedOutputs, parse_outputs
-
-logger = get_logger(__name__)
 
 # Dify error ``code`` tokens are short identifiers, never mail content.
 _DIFY_ERROR_CODE_RE = re.compile(r"^[A-Za-z0-9_]{1,64}$")
@@ -29,6 +26,8 @@ class CallResult:
     - ``outputs`` — set only when End fields passed validation.
     - ``workflow_run_id`` — ``None`` when Dify omitted it or we have no body.
     - ``fail_reason`` — stable class of failure; ``None`` on success.
+    - ``exc_type`` — exception class name when a client-side parse/transport
+      error occurred; ``None`` otherwise.
     """
 
     ok: bool
@@ -39,10 +38,11 @@ class CallResult:
     outputs_error: str | None = None
     dify_error_code: str | None = None
     workflow_status: str | None = None
+    exc_type: str | None = None
 
 
 class Client:
-    """POST blocking run; never logs request/response content."""
+    """POST blocking run; map HTTP/JSON outcomes onto ``CallResult``."""
 
     def __init__(
         self,
@@ -86,29 +86,15 @@ class Client:
                 timeout=self._settings.dify_timeout_seconds,
             )
         except httpx.HTTPError as exc:
-            logger.exception(
-                "dify_http_error",
-                extra={
-                    "exc_type": type(exc).__name__,
-                    "fail_reason": constants.FAIL_HTTP_ERROR,
-                },
-            )
             return CallResult(
                 ok=False,
                 outputs=None,
                 workflow_run_id=None,
                 fail_reason=constants.FAIL_HTTP_ERROR,
+                exc_type=type(exc).__name__,
             )
         if response.status_code >= constants.HTTP_ERROR_STATUS_MIN:
             error_code = _safe_dify_error_code(_json_object(response))
-            logger.error(
-                "dify_http_status",
-                extra={
-                    "http_status": response.status_code,
-                    "fail_reason": constants.FAIL_HTTP_STATUS,
-                    "dify_error_code": error_code,
-                },
-            )
             return CallResult(
                 ok=False,
                 outputs=None,
@@ -121,20 +107,13 @@ class Client:
         try:
             payload: dict[str, Any] = response.json()
         except ValueError as exc:
-            logger.exception(
-                "dify_bad_json",
-                extra={
-                    "http_status": response.status_code,
-                    "exc_type": type(exc).__name__,
-                    "fail_reason": constants.FAIL_BAD_JSON,
-                },
-            )
             return CallResult(
                 ok=False,
                 outputs=None,
                 workflow_run_id=None,
                 fail_reason=constants.FAIL_BAD_JSON,
                 http_status=response.status_code,
+                exc_type=type(exc).__name__,
             )
         run_id = _read_workflow_run_id(payload)
         workflow_status = _read_workflow_status(payload)
@@ -145,16 +124,6 @@ class Client:
                 citation_repo_base=self._settings.citation_repo_base,
             )
         except OutputsError as exc:
-            logger.error(
-                "dify_outputs_invalid",
-                extra={
-                    "workflow_run_id": run_id,
-                    "fail_reason": constants.FAIL_OUTPUTS_INVALID,
-                    "outputs_error": str(exc),
-                    "workflow_status": workflow_status,
-                    "exc_type": type(exc).__name__,
-                },
-            )
             return CallResult(
                 ok=False,
                 outputs=None,
@@ -162,11 +131,8 @@ class Client:
                 fail_reason=constants.FAIL_OUTPUTS_INVALID,
                 outputs_error=str(exc),
                 workflow_status=workflow_status,
+                exc_type=type(exc).__name__,
             )
-        logger.info(
-            "dify_run_ok",
-            extra={"workflow_run_id": run_id},
-        )
         return CallResult(
             ok=True,
             outputs=outputs,
@@ -195,7 +161,7 @@ def _safe_dify_error_code(payload: dict[str, Any] | None) -> str | None:
 
 
 def _read_workflow_status(payload: dict[str, Any]) -> str | None:
-    """Allowlisted ``data.status`` only (never free-form error text)."""
+    """Known ``data.status`` tokens only (never free-form error text)."""
     data = payload.get("data")
     if not isinstance(data, dict):
         return None

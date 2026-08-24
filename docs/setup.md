@@ -125,7 +125,7 @@ only if you need a timer other than 86400. Keep
 not stall on “Syncing data”.
 
 Gateway diagnosis: `docker compose logs email-gateway`. Look for ERROR
-`dify_http_status` / `workflow_failed` (`fail_reason`, `http_status`).
+`workflow_failed` (`fail_reason`, `http_status`).
 
 ## Yandex foundation models (TODO)
 
