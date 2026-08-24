@@ -27,7 +27,9 @@ and are unused here.
 **Phase 5** is done: `dify/apps/email_helpdesk.yml` is the secret-free
 no-model Workflow graph (MCP tool nodes, IF/ELSE, Code/Template stubs,
 End `reply_text` / `ticket_id`) — not a Start→End echo. **Phase 6** is
-current (knowledge ingest). Merge-gate / `make test` uses **fake Dify**
+current (knowledge ingest); canonical Markdown is in
+[`knowledge_base/`](knowledge_base/) and the golden catalog is in
+[`tests/eval/`](tests/eval/). Merge-gate / `make test` uses **fake Dify**
 (no live Studio or paid models). Platform setup:
 [docs/setup.md](docs/setup.md).
 

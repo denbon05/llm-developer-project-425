@@ -1,0 +1,51 @@
+{
+  "metadata": {
+    "candidate_k": 10,
+    "rerank_top_k": 3,
+    "score_threshold": 0.7,
+    "embedding_model": "granite-embedding:30m",
+    "llm_reranker": "TBD / Phase 7; no Cohere/Jina slot"
+  },
+  "cases": [
+    {
+      "id": "vpn-personal-laptop",
+      "query": "Can I install the company VPN on my personal laptop so I can reach file shares from home?",
+      "expected_doc": "knowledge_base/vpn-access.md"
+    },
+    {
+      "id": "password-forgot-sign-in",
+      "query": "Hi, I forgot my work password and I keep getting locked out of email. What is the correct way to reset it? I do not want to put the new password in this message.",
+      "expected_doc": "knowledge_base/password-sso.md"
+    },
+    {
+      "id": "hardware-usb-c-dock",
+      "query": "The USB-C dock at my desk stopped charging my laptop. Can I get a company replacement, or should I just bring the spare dock I use at home?",
+      "expected_doc": "knowledge_base/hardware-requests.md"
+    },
+    {
+      "id": "leave-friday-off",
+      "query": "I want next Friday off. Do I open an IT ticket for annual leave, or is there another way to book it so my manager can approve the day?",
+      "expected_doc": "knowledge_base/leave-requests.md"
+    },
+    {
+      "id": "guest-contractor-wifi",
+      "query": "A contractor is sitting at reception and needs internet for a few hours. What should I do?",
+      "expected_doc": "knowledge_base/guest-wifi.md"
+    },
+    {
+      "id": "expense-train-receipt",
+      "query": "I have a paper train receipt from a work trip last week. What do I need to send in so I can get reimbursed?",
+      "expected_doc": "knowledge_base/expense-reports.md"
+    },
+    {
+      "id": "software-unlisted-app",
+      "query": "I need a diagramming app that is not on the allowed list. How do I get it approved for my workstation? I would rather not download a random installer from the vendor site in the meantime.",
+      "expected_doc": "knowledge_base/approved-software.md"
+    },
+    {
+      "id": "badge-late-arrival",
+      "query": "I will get to the office late tonight after the front desk has gone home. How am I supposed to get in?",
+      "expected_doc": "knowledge_base/badge-building.md"
+    }
+  ]
+}
