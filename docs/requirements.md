@@ -64,17 +64,18 @@ ticket exists.
   `append-message` does not change status (ticket stays `escalated`). Do
   not reopen. There is no operator UI; the human/operator path remains
   out of scope. Dify does not own escalate rules.
-- **FR-4 — Knowledge and citations.** v1 uses one Dify knowledge base,
-  persistent bundled Weaviate, and local `granite-embedding:30m` (bi-encoder)
-  through an internal resource-limited Ollama container. Then an
-  **LLM-as-reranker** (small Yandex Cloud AI Studio FM, model TBD — not a
-  true cross-encoder; do not use a Cohere/Jina rerank slot). Configurable
-  defaults: `candidate_k=10` → rerank → `rerank_top_k=3` if score ≥ `0.7`.
-  Corpus: 5–10 concise synthetic English documents (planning target ~eight).
-  Canonical knowledge is versioned in Git. Citations are trusted repository
-  URLs under a configured repo base to future `knowledge_base/` paths, never
-  model-generated URLs. The gateway rejects URLs outside that base. If the
-  End node cannot emit a list, `citations` may be a JSON string.
+- **FR-4 — Knowledge and citations.** v1 uses one Dify knowledge base
+  (`employee-helpdesk`), persistent bundled Weaviate, and local
+  `ibm/granite-embedding:30m` (bi-encoder) through an internal
+  resource-limited Ollama container. Then an **LLM-as-reranker** (small
+  Yandex Cloud AI Studio FM, model TBD — not a true cross-encoder; do not
+  use a Cohere/Jina rerank slot). Configurable defaults: `candidate_k=10`
+  → rerank → `rerank_top_k=3` if score ≥ `0.7`. Corpus: eight concise
+  synthetic English documents in `knowledge_base/`. Canonical knowledge is
+  versioned in Git. Citations are trusted repository URLs under a
+  configured repo base to `knowledge_base/` paths, never model-generated
+  URLs. The gateway rejects URLs outside that base. If the End node cannot
+  emit a list, `citations` may be a JSON string.
 - **FR-5 — Ticket ownership and interfaces.** The ticketing module owns durable
   tickets, messages, and escalation validity. MCP tools are
   `create-ticket`, `list-my-tickets`, `append-message`; `user_id` (sender
@@ -123,8 +124,9 @@ ticket exists.
 - **FR-9 — Dify lifecycle.** Two Workflow-type Studio Apps:
   1. `email_helpdesk` — User Input start; gateway blocking Service API
      `POST …/v1/workflows/run`. Committed export
-     `dify/apps/email_helpdesk.yml` is the no-model stub of the architecture
-     graph (not a Start→End echo).
+     `dify/apps/email_helpdesk.yml` is the architecture graph with
+     Knowledge Retrieval (local embeddings) and Code/Template stubs for
+     answer and categorizer (not a Start→End echo).
   2. Escalate — Schedule Trigger (daily / 24h) that **only** HTTP-calls
      `POST /v1/tickets/escalate-stale`. No escalate logic in Dify. User Input
      vs Trigger are different start types; keep two apps.
@@ -303,8 +305,8 @@ ticket exists.
 
 Toxicity word-list contents, LLM-rerank model id, and escalation intervals
 will be calibrated at their phase gates. Recorded retrieval defaults:
-`candidate_k=10`, `rerank_top_k=3`, score ≥ `0.7` (LLM-rerank may remain TBD
-through Phase 6). Until then, the required outcomes above are normative:
+`candidate_k=10`, `rerank_top_k=3`, score ≥ `0.7` (LLM-rerank remains TBD
+until Phase 7). Until then, the required outcomes above are normative:
 KB hit with no non-`closed` ticket → email only (no ticket, no `messages`);
 knowledge gap with no non-`closed` ticket → `create-ticket` plus first-user
 `append-message` then agent append; non-`closed` ticket → always append

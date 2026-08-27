@@ -6,8 +6,8 @@ requirements, and architecture before the next phase starts. No implementation
 agent owns the whole system. Each phase updates affected documentation and
 ends with a verification gate and a short learning checkpoint.
 
-Phases 1–5 are historical (done). Current work is Phase 6 (knowledge and
-evaluation). `list-my-tickets` already matches the Studio-binding contract
+Phases 1–6 are historical (done). Current work is Phase 7 (controlled
+intelligence). `list-my-tickets` already matches the Studio-binding contract
 (`text`, optional `statuses`).
 
 ## Phase 1 — Fix the design
@@ -110,12 +110,17 @@ evaluation). `list-my-tickets` already matches the Studio-binding contract
   `employee-helpdesk` knowledge base, and preserve stable trusted repository
   source IDs/URLs to `knowledge_base/` paths. Eval suite folder layout is
   chosen in this phase. Record `candidate_k=10` / `rerank_top_k=3` / `0.7`.
-  Bi-encoder measurement with local `granite-embedding:30m`. Yandex
+  Bi-encoder measurement with local `ibm/granite-embedding:30m`. Yandex
   LLM-as-reranker may still be TBD / Phase 7. No sensitive data. This agent
   does not change application architecture.
-- **Verification gate:** reproducible re-ingestion and measured bi-encoder
-  retrieval meet the golden cases; recorded k/threshold values; no Cohere/Jina
-  rerank slot; no sensitive data.
+- **Verification gate:** done. Eight synthetic English pages in
+  `knowledge_base/`; Dify dataset `employee-helpdesk`; golden catalog and
+  opt-in scorer in `tests/eval/`. Recorded `candidate_k=10` /
+  `rerank_top_k=3` / `0.7`; `make test` checks the catalog and exported
+  Knowledge Retrieval settings (no Dify); `make eval` measures bi-encoder
+  retrieval against live Dify/Weaviate/Ollama and requires each expected
+  document to rank first. No Cohere/Jina rerank slot; no sensitive data.
+  Phase 7 is live Yandex / LLM-as-reranker.
 - **Learning checkpoint:** explain why Git is canonical, Weaviate is derived,
   and retrieval quality is measured rather than assumed.
 

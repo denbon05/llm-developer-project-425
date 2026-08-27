@@ -1,12 +1,17 @@
 app:
   description: ''
-  icon: 🤖
+  icon: 🆘
   icon_background: '#FFEAD5'
   icon_type: emoji
   mode: workflow
   name: email_helpdesk
   use_icon_as_answer_icon: false
-dependencies: []
+dependencies:
+- current_identifier: null
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/ollama:1.0.0@86dd6101fbd9de94e6681782700fa98c8a785c982918e6fe0ec21d507e15ba3f
+    version: null
 kind: app
 version: 0.7.0
 workflow:
@@ -90,12 +95,12 @@ workflow:
         iteration_id: null
         loop_id: null
         sourceType: if-else
-        targetType: code
-      id: 1787415956320-true-1787479405381-target
+        targetType: knowledge-retrieval
+      id: 1787415956320-true-1787680467851-target
       selected: false
       source: '1787415956320'
       sourceHandle: 'true'
-      target: '1787479405381'
+      target: '1787680467851'
       targetHandle: target
       type: custom
       zIndex: 0
@@ -220,7 +225,7 @@ workflow:
       type: custom
       zIndex: 0
     - data:
-        isInIteration: null
+        isInIteration: false
         isInLoop: false
         iteration_id: null
         loop_id: null
@@ -231,21 +236,6 @@ workflow:
       source: '17874209012360'
       sourceHandle: source
       target: '1787485694956'
-      targetHandle: target
-      type: custom
-      zIndex: 0
-    - data:
-        isInIteration: false
-        isInLoop: false
-        iteration_id: null
-        loop_id: null
-        sourceType: code
-        targetType: if-else
-      id: 1787479405381-source-1787479761026-target
-      selected: false
-      source: '1787479405381'
-      sourceHandle: source
-      target: '1787479761026'
       targetHandle: target
       type: custom
       zIndex: 0
@@ -295,7 +285,7 @@ workflow:
       type: custom
       zIndex: 0
     - data:
-        isInIteration: null
+        isInIteration: false
         isInLoop: false
         iteration_id: null
         loop_id: null
@@ -310,16 +300,47 @@ workflow:
       type: custom
       zIndex: 0
     - data:
-        isInIteration: null
+        isInIteration: false
         isInLoop: false
         iteration_id: null
         loop_id: null
         sourceType: variable-aggregator
         targetType: end
       id: 1787485694956-source-1787418710934-target
+      selected: false
       source: '1787485694956'
       sourceHandle: source
       target: '1787418710934'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        iteration_id: null
+        loop_id: null
+        sourceType: knowledge-retrieval
+        targetType: code
+      id: 1787680467851-source-1787680600373-target
+      selected: false
+      source: '1787680467851'
+      sourceHandle: source
+      target: '1787680600373'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        iteration_id: null
+        loop_id: null
+        sourceType: code
+        targetType: if-else
+      id: 1787680600373-source-1787479761026-target
+      selected: false
+      source: '1787680600373'
+      sourceHandle: source
+      target: '1787479761026'
       targetHandle: target
       type: custom
       zIndex: 0
@@ -551,11 +572,11 @@ workflow:
       height: 52
       id: '1787416104790'
       position:
-        x: 1942.3682108303237
-        y: 329.44825611525175
+        x: 2271.8415172670198
+        y: 357.0577814923608
       positionAbsolute:
-        x: 1942.3682108303237
-        y: 329.44825611525175
+        x: 2271.8415172670198
+        y: 357.0577814923608
       selected: false
       sourcePosition: right
       targetPosition: left
@@ -587,11 +608,11 @@ workflow:
       height: 52
       id: '1787416196302'
       position:
-        x: 1942.3682108303237
-        y: 237.83778218218112
+        x: 2271.8415172670198
+        y: 265.44730755929015
       positionAbsolute:
-        x: 1942.3682108303237
-        y: 237.83778218218112
+        x: 2271.8415172670198
+        y: 265.44730755929015
       selected: false
       sourcePosition: right
       targetPosition: left
@@ -715,11 +736,11 @@ workflow:
       height: 84
       id: '1787418110266'
       position:
-        x: 2268.781826101078
-        y: 280.18478431053063
+        x: 2598.255132537774
+        y: 307.79430968763967
       positionAbsolute:
-        x: 2268.781826101078
-        y: 280.18478431053063
+        x: 2598.255132537774
+        y: 307.79430968763967
       selected: false
       sourcePosition: right
       targetPosition: left
@@ -995,11 +1016,11 @@ workflow:
       height: 84
       id: '1787418286718'
       position:
-        x: 2892.184047102362
-        y: 254.97685390169318
+        x: 3221.6573535390585
+        y: 282.58637927880216
       positionAbsolute:
-        x: 2892.184047102362
-        y: 254.97685390169318
+        x: 3221.6573535390585
+        y: 282.58637927880216
       selected: false
       sourcePosition: right
       targetPosition: left
@@ -1026,11 +1047,11 @@ workflow:
       height: 52
       id: '1787418417198'
       position:
-        x: 2575.924261637099
-        y: 291.336811402084
+        x: 2905.3975680737954
+        y: 318.946336779193
       positionAbsolute:
-        x: 2575.924261637099
-        y: 291.336811402084
+        x: 2905.3975680737954
+        y: 318.946336779193
       selected: false
       sourcePosition: right
       targetPosition: left
@@ -1305,11 +1326,11 @@ workflow:
       height: 84
       id: '1787418649631'
       position:
-        x: 3194.184047102362
-        y: 254.97685390169318
+        x: 3523.6573535390585
+        y: 282.58637927880216
       positionAbsolute:
-        x: 3194.184047102362
-        y: 254.97685390169318
+        x: 3523.6573535390585
+        y: 282.58637927880216
       selected: false
       sourcePosition: right
       targetPosition: left
@@ -1336,12 +1357,12 @@ workflow:
       height: 114
       id: '1787418710934'
       position:
-        x: 3931.068502640187
-        y: 213.7784198788368
+        x: 4221.395015235814
+        y: 243.4421101539541
       positionAbsolute:
-        x: 3931.068502640187
-        y: 213.7784198788368
-      selected: true
+        x: 4221.395015235814
+        y: 243.4421101539541
+      selected: false
       sourcePosition: right
       targetPosition: left
       type: custom
@@ -1940,65 +1961,29 @@ workflow:
       width: 242
       zIndex: 0
     - data:
-        code: "def main(subject: str, text: str) -> dict:\n    return {\"has_kb_hit\"\
-          : False}\n"
-        code_language: python3
-        outputs:
-          has_kb_hit:
-            children: null
-            type: boolean
-        selected: false
-        title: Query KB
-        type: code
-        variables:
-        - value_selector:
-          - '1786730582147'
-          - subject
-          value_type: string
-          variable: subject
-        - value_selector:
-          - '1786730582147'
-          - request_text
-          value_type: string
-          variable: text
-      height: 52
-      id: '1787479405381'
-      position:
-        x: 1271.2725695914396
-        y: 309.90848372295875
-      positionAbsolute:
-        x: 1271.2725695914396
-        y: 309.90848372295875
-      selected: false
-      sourcePosition: right
-      targetPosition: left
-      type: custom
-      width: 242
-      zIndex: 0
-    - data:
         cases:
         - case_id: 'true'
           conditions:
           - comparison_operator: is
             id: 5f442450-a58d-4be9-ba25-e9407b60575f
-            value: true
+            value: false
             varType: boolean
             variable_selector:
-            - '1787479405381'
-            - has_kb_hit
+            - '1787680600373'
+            - has_kb_hits
           id: 'true'
           logical_operator: and
         selected: false
-        title: If KB hint exists
+        title: If KB hit
         type: if-else
       height: 148
       id: '1787479761026'
       position:
-        x: 1610.368399553501
-        y: 171.8989959065163
+        x: 1939.8417059901972
+        y: 199.5085212836253
       positionAbsolute:
-        x: 1610.368399553501
-        y: 171.8989959065163
+        x: 1939.8417059901972
+        y: 199.5085212836253
       selected: false
       sourcePosition: right
       targetPosition: left
@@ -2019,11 +2004,11 @@ workflow:
       height: 52
       id: '1787479879565'
       position:
-        x: 1942.3682108303237
-        y: 142.19871808702962
+        x: 2271.8415172670198
+        y: 169.80824346413863
       positionAbsolute:
-        x: 1942.3682108303237
-        y: 142.19871808702962
+        x: 2271.8415172670198
+        y: 169.80824346413863
       selected: false
       sourcePosition: right
       targetPosition: left
@@ -2053,25 +2038,104 @@ workflow:
             - - '1787415783237'
               - ticket_id
         output_type: any
-        selected: true
+        selected: false
         title: Variable Aggregator
         type: variable-aggregator
         variables: []
-      height: 213
+      height: 242
       id: '1787485694956'
       position:
-        x: 3564.4777491861364
-        y: 149.4417070258187
+        x: 3893.951055622833
+        y: 177.0512324029277
       positionAbsolute:
-        x: 3564.4777491861364
-        y: 149.4417070258187
+        x: 3893.951055622833
+        y: 177.0512324029277
       selected: false
       sourcePosition: right
       targetPosition: left
       type: custom
       width: 242
+      zIndex: 0
+    - data:
+        dataset_ids:
+        - /2HS0krFIZ8dbzGZlwE09GaM6NzR4jTe0P5WC83foT8ySuI2Fi+HQzdjGjOnBxEw
+        isInIteration: null
+        isInLoop: null
+        iteration_id: null
+        loop_id: null
+        multiple_retrieval_config:
+          reranking_enable: false
+          reranking_mode: weighted_score
+          score_threshold: 0.7
+          top_k: 10
+          weights:
+            keyword_setting:
+              keyword_weight: 0
+            vector_setting:
+              embedding_model_name: ibm/granite-embedding:30m
+              embedding_provider_name: langgenius/ollama/ollama
+              vector_weight: 1
+            weight_type: customized
+        query_attachment_selector: []
+        query_variable_selector:
+        - '1786730582147'
+        - request_text
+        retrieval_mode: multiple
+        selected: true
+        title: Knowledge Retrieval
+        type: knowledge-retrieval
+      height: 52
+      id: '1787680467851'
+      position:
+        x: 1271.2725695914396
+        y: 309.90848372295875
+      positionAbsolute:
+        x: 1271.2725695914396
+        y: 309.90848372295875
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        code: "\ndef main(items: list[dict]):\n    has_kb_hits = len(items) > 0\n\
+          \    hits = [\n        {key: item.get(key, None) for key in ('content',\
+          \ 'title')}\n        for item in items\n    ]\n\n    return {\n        \"\
+          has_kb_hits\": has_kb_hits,\n        \"hits\": hits,\n    }\n"
+        code_language: python3
+        outputs:
+          has_kb_hits:
+            children: null
+            type: boolean
+          hits:
+            children: null
+            type: array[object]
+        selected: false
+        title: Extract hits
+        type: code
+        variables:
+        - value_selector:
+          - '1787680467851'
+          - result
+          value_type: array[object]
+          variable: items
+      height: 52
+      id: '1787680600373'
+      position:
+        x: 1618.5025342531803
+        y: 243.4421101539541
+      positionAbsolute:
+        x: 1618.5025342531803
+        y: 243.4421101539541
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 0
     viewport:
-      x: -1009.4369074308156
-      y: 221.61764506687433
-      zoom: 0.5180140536944281
+      x: -778.9447773355192
+      y: 37.24161001129438
+      zoom: 0.7966569747648773
   rag_pipeline_variables: []

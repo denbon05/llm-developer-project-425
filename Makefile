@@ -16,16 +16,17 @@ APP_COMPOSE := docker compose -f compose.yml
 PYTHON_VERSION := $(shell tr -d '[:space:]' < .python-version)
 export PYTHON_VERSION
 
-.PHONY: help bootstrap test format migrate-create migrate-up
+.PHONY: help bootstrap test eval format migrate-create migrate-up
 
 help:
 	@echo "Application stack (two-terminal foreground up; includes email-gateway):"
 	@echo "  make bootstrap              Env files + uv sync --all-extras; print start order"
-	@echo "  make dify-stack-up          Start Dify platform (creates helpdesk_private)"
+	@echo "  make dify-stack-up          Start Dify (creates helpdesk_private; ollama-pull uses OLLAMA_EMBEDDING_MODEL)"
 	@echo "  make app-stack-up           Start app stack: GreenMail + helpdesk-db + ticketing + email-gateway"
 	@echo "  make dify-stack-down        Stop Dify platform"
 	@echo "  make app-stack-down         Stop application stack"
 	@echo "  make test                   Run pytest (fake Dify; GreenMail via Testcontainers)"
+	@echo "  make eval                   Golden retrieval against live Dify knowledge API (opt-in)"
 	@echo "  make format                 Ruff format (src + tests)"
 	@echo "  make migrate-create m=\"…\" Autogenerate Alembic migration (helpdesk-db up)"
 	@echo "  make migrate-up             Apply pending migrations (alembic upgrade head)"
@@ -56,6 +57,9 @@ app-stack-down:
 
 test:
 	uv run pytest
+
+eval: app-env
+	uv run python -m tests.eval.evaluate
 
 format:
 	uv run ruff format src tests

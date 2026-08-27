@@ -1,9 +1,10 @@
 {
   "metadata": {
+    "knowledge_base": "employee-helpdesk",
     "candidate_k": 10,
     "rerank_top_k": 3,
     "score_threshold": 0.7,
-    "embedding_model": "granite-embedding:30m",
+    "embedding_model": "ibm/granite-embedding:30m",
     "llm_reranker": "TBD / Phase 7; no Cohere/Jina slot"
   },
   "cases": [

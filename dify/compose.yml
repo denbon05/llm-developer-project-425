@@ -280,7 +280,7 @@ services:
       - default
       - helpdesk_private
 
-  # Resource-limited local embedding host (granite-embedding:30m pulled later).
+  # Internal local embedding host (model loaded by ollama-pull).
   ollama:
     image: ollama/ollama:0.11.4
     restart: unless-stopped
@@ -293,7 +293,6 @@ services:
       - dify_ollama_data:/root/.ollama
     mem_limit: 2g
     cpus: 2.0
-    # No host ports: Ollama is internal only (SEC-8).
     healthcheck:
       test: ["CMD", "ollama", "list"]
       interval: 30s
@@ -303,6 +302,22 @@ services:
     networks:
       - default
       - helpdesk_private
+
+  # One-shot on compose up: pull the model via the Ollama API into
+  # dify_ollama_data. Idempotent after the first success. Do not block
+  # api/worker on this.
+  ollama-pull:
+    image: ollama/ollama:0.11.4
+    restart: "no"
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    depends_on:
+      ollama:
+        condition: service_healthy
+    entrypoint: ["ollama"]
+    command: ["pull", "${OLLAMA_EMBEDDING_MODEL}"]
+    networks:
+      - default
 
 networks:
   default:

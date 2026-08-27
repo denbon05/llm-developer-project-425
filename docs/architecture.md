@@ -31,9 +31,9 @@ human/operator path remains out of scope.
   `ticket_id`; categorizer → `category`). The answer LLM node does not
   function-call MCP and must not invent `user_id` / `ticket_id`.
   - `email_helpdesk` — User Input start. Graph design (committed DSL is
-    this topology with Code/Template stubs for retrieve, answer, and
-    categorizer — not a Start→End echo. Phase 6 replaces Query KB with
-    Knowledge Retrieval; Phase 7 is live Yandex):
+    this topology with Knowledge Retrieval plus Code/Template stubs for
+    answer and categorizer — not a Start→End echo. Phase 7 is live
+    Yandex):
     (1) `list-my-tickets` tool node early; (2) retrieve: local bi-encoder
     then LLM-as-reranker (small Yandex FM, model TBD — not a true
     cross-encoder; no Cohere/Jina rerank slot) then a dedicated answer
@@ -59,13 +59,14 @@ human/operator path remains out of scope.
   and Luhn-valid payment-card candidates into placeholders. The gateway uses it
   before Dify and the ticketing module applies it again at its persistence seam
   for ticket/message text. Masking is not reversible encrypt/decrypt.
-- **Knowledge module** — treats versioned Markdown in Git as canonical,
-  produces trusted source metadata, and reproducibly ingests one Dify
-  knowledge base. Retrieval (provisional, later phases): local bi-encoder
-  `granite-embedding:30m` via Ollama, then LLM-as-reranker (small Yandex
-  Cloud AI Studio FM, model TBD). Defaults: `candidate_k=10` → rerank →
-  `rerank_top_k=3` if score ≥ `0.7`. Citations are trusted Git URLs under a
-  configured repo base to future `knowledge_base/` paths.
+- **Knowledge module** — treats versioned Markdown in Git (`knowledge_base/`)
+  as canonical, produces trusted source metadata, and reproducibly ingests
+  one Dify knowledge base named `employee-helpdesk`. Retrieval uses local
+  bi-encoder `ibm/granite-embedding:30m` via Ollama (vector search;
+  recorded `candidate_k=10`, score ≥ `0.7`). LLM-as-reranker (small Yandex
+  Cloud AI Studio FM, model TBD) is Phase 7; no Cohere/Jina rerank slot.
+  Recorded `rerank_top_k=3` waits for that step. Citations are trusted Git
+  URLs under a configured repo base to `knowledge_base/` paths.
 - **Lifecycle schedule** — the Escalate Dify app calls private HTTP
   `POST /v1/tickets/escalate-stale`. Ticketing selects `open` rows whose
   `updated_at` is older than the inactivity threshold (default
@@ -147,8 +148,9 @@ flowchart LR
 The two Compose projects use pinned images, plugins, and model tags. Yandex
 Cloud AI Studio is the only external model provider receiving application
 content in v1; configuration and acceptance reject OpenAI, watsonx, Cohere,
-Jina, and other external providers. Ollama is internal (embeddings). Dify's
-PostgreSQL and helpdesk PostgreSQL never share ownership or schemas.
+Jina, and other external providers. Ollama is the internal embedding host;
+Dify uses `http://ollama:11434` on the Compose network. Dify's PostgreSQL
+and helpdesk PostgreSQL never share ownership or schemas.
 
 Compose definitions live at root `compose.yml` (application stack:
 email-gateway, ticketing, helpdesk PostgreSQL, GreenMail) and
@@ -161,9 +163,10 @@ project joins it as external (start Dify first). `plugin_daemon` and
 `SSRF_PROXY_ALLOW_PRIVATE_DOMAINS` is `ticketing` only. The root `Makefile` wraps
 both with foreground `make dify-stack-up` / `make app-stack-up` (two
 terminals). Secret-free Dify App DSL exports live under `dify/apps/` —
-`email_helpdesk.yml` is the no-model stub of the graph above (MCP tool
-nodes, IF/ELSE, Code/Template stubs, one Variable Aggregator, End
-`reply_text` / `ticket_id`). The Escalate app is Phase 8.
+`email_helpdesk.yml` is the graph above with Knowledge Retrieval (local
+embeddings) and Code/Template stubs for answer and categorizer (MCP tool
+nodes, IF/ELSE, one Variable Aggregator, End `reply_text` / `ticket_id`).
+The Escalate app is Phase 8.
 
 ## Minimal Dify contract
 
@@ -180,7 +183,7 @@ outputs (End):
   reply_text      # required string; gateway SMTP-sends this
   ticket_id       # optional string; present when a ticket exists/was created
   citations       # optional; omit/skip on KB miss. Trusted repo URLs to
-                  # future knowledge_base/ paths. If End cannot emit a list,
+                  # knowledge_base/ paths. If End cannot emit a list,
                   # a JSON string is allowed.
 ```
 
@@ -216,7 +219,7 @@ Blocking example (keys must match Start names):
 
 `user` is Dify’s log identity; set it to the same sender. Merge-gate tests
 use a **fake** of this contract (no paid models, no live Studio in CI).
-Local/opt-in may call the live no-model graph.
+Local/opt-in may call the live graph (answer/categorizer still stubs).
 
 The old `WorkflowRequestV1` / `WorkflowResultV1` action-enum contract is
 retired. The gateway waits for `data.outputs`, validates, SMTP-replies,
@@ -404,7 +407,7 @@ human/operator path remains out of scope.
 ├── dify/
 │   ├── compose.yml              # Dify platform stack
 │   └── apps/                    # one secret-free DSL export per Dify App
-│       └── email_helpdesk.yml   # no-model stub of the email graph
+│       └── email_helpdesk.yml   # email graph (Knowledge Retrieval; stub LLM)
 ├── src/
 │   ├── contracts/
 │   ├── privacy/
@@ -414,7 +417,8 @@ human/operator path remains out of scope.
 │   ├── unit/
 │   ├── contract/
 │   ├── integration/
-│   └── e2e/
+│   ├── e2e/
+│   └── eval/                    # golden catalog + opt-in live retrieval
 ├── scripts/
 ├── compose.yml                  # application stack
 ├── Makefile

@@ -1,7 +1,7 @@
 # Canonical employee-helpdesk knowledge
 
 Git is the canonical store. Weaviate is a derived index rebuilt from these
-Markdown files. The Dify dataset name will be `employee-helpdesk`.
+Markdown files. The Dify dataset name is `employee-helpdesk`.
 
 Citation URLs are `{CITATION_REPO_BASE}{filename}` (see `.env.example`).
 Example: `vpn-access.md` becomes

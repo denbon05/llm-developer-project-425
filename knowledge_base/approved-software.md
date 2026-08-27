@@ -1,12 +1,14 @@
 # Approved software
 
-Workstations may run only packages that security has already reviewed. The
-office suite and the supported browser are already available. Unknown
-installers from the web are blocked for a reason.
+Company workstations may run only software that security has approved. If an
+application, including a diagramming app, is not on the approved software
+list, treat it as unreviewed. Unknown installers from vendor websites are
+blocked for a reason.
 
-If the tool you need is missing, file a software exception with vendor
-name and business reason. Do not sideload a trial while waiting. A trial binary is
-still unreviewed software, even if you only need it for a week.
+To request approval, file a software exception with the application name,
+vendor, and business reason. Do not download or sideload the vendor installer
+while waiting. A trial binary is still unreviewed software, even if you only
+need it for a week.
 
 Personal cloud-sync clients and random browser extensions are not a
 workaround. Wait for the exception decision. If the request is refused, use
