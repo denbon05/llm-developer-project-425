@@ -72,10 +72,11 @@ ticket exists.
   use a Cohere/Jina rerank slot). Configurable defaults: `candidate_k=10`
   → rerank → `rerank_top_k=3` if score ≥ `0.7`. Corpus: eight concise
   synthetic English documents in `knowledge_base/`. Canonical knowledge is
-  versioned in Git. Citations are trusted repository URLs under a
-  configured repo base to `knowledge_base/` paths, never model-generated
-  URLs. The gateway rejects URLs outside that base. If the End node cannot
-  emit a list, `citations` may be a JSON string.
+  versioned in Git. End `source_filenames` are `knowledge_base/` filenames
+  from retrieval, never model-generated URLs. The gateway builds
+  `{CITATION_URL_BASE}{filename}` and appends a `Sources:` footer to the
+  SMTP body. It rejects names that are not a single filename. Empty,
+  omitted, or null `source_filenames` is a KB miss (no footer).
 - **FR-5 — Ticket ownership and interfaces.** The ticketing module owns durable
   tickets, messages, and escalation validity. MCP tools are
   `create-ticket`, `list-my-tickets`, `append-message`; `user_id` (sender
@@ -266,7 +267,7 @@ ticket exists.
     enough; later opt-in checks may compare stored token counts with
     generator usage within 10%.
 11. Malicious instructions in retrieved knowledge cannot change routing, tool
-    authorization, or repository-controlled citation URLs.
+    authorization, or repository-controlled citation filenames.
 12. Restart and restore checks preserve ticket/message data; deleting the
     vector index and re-ingesting canonical Git documents restores retrieval.
 13. Deterministic merge-gate CI uses fake Dify contract behavior, local

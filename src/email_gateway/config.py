@@ -26,8 +26,8 @@ class Settings(BaseSettings):
     email_poll_interval_seconds: int = 60
     # Blocking HTTP wait; not the SMTP connect budget.
     dify_timeout_seconds: float = 60.0
-    # Citation URLs must start with this prefix; empty rejects all citations.
-    citation_repo_base: str = ""
+    # Prefix for citation URLs (knowledge_base/ Markdown).
+    citation_url_base: str = ""
     static_ack_text: str = constants.STATIC_ACK_TEXT
 
 

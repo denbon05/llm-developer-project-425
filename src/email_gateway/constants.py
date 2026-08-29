@@ -28,3 +28,9 @@ FAIL_BAD_JSON = "bad_json"
 
 FAIL_OUTPUTS_INVALID = "outputs_invalid"
 """Workflow End outputs failed validation."""
+
+CITATION_SOURCES_HEADING = "Sources:"
+"""Plain-text SMTP footer heading above gateway-built citation URLs."""
+
+TICKET_ID_HEADING = "Ticket:"
+"""Plain-text SMTP line prefix for End ``ticket_id``."""

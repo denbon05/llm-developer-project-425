@@ -1,19 +1,22 @@
-"""Unit tests for blocking End outputs and citation prefix checks."""
+"""Unit tests for blocking End outputs and source filename checks."""
 
 import pytest
 
+from email_gateway import constants
 from email_gateway.config import build_authorization_header
 from email_gateway.outputs import OutputsError, parse_outputs
 
-# Same allow-list prefix as tests/integration/testdata.py.
-_CITATION_REPO_BASE = (
+# Same prefix as tests/integration/testdata.py.
+_CITATION_URL_BASE = (
     "https://github.com/example/helpdesk/blob/main/knowledge_base/"
 )
 _APP_KEY = "app-xxx"
 _BEARER_APP_KEY = f"Bearer {_APP_KEY}"
 _REPLY_HELLO = "hello"
 _REPLY_OK = "ok"
-_CITATION_OUTSIDE_BASE = "https://evil.example/x"
+_SOURCE_FILENAME = "vpn-access.md"
+_SOURCE_FILENAME_NESTED = "../secret.md"
+_TICKET_ID = "t-1"
 _WORKFLOW_STATUS_SUCCEEDED = "succeeded"
 
 
@@ -29,45 +32,73 @@ def test_parse_outputs_requires_reply_text() -> None:
     with pytest.raises(OutputsError):
         parse_outputs(
             {"data": {"status": _WORKFLOW_STATUS_SUCCEEDED, "outputs": {}}},
-            citation_repo_base=_CITATION_REPO_BASE,
+            citation_url_base=_CITATION_URL_BASE,
         )
 
 
-def test_parse_outputs_empty_citations_ok() -> None:
-    """Empty citations is a KB miss, not a validation error."""
-    result = parse_outputs(
-        {
-            "data": {
-                "status": _WORKFLOW_STATUS_SUCCEEDED,
-                "outputs": {"reply_text": _REPLY_HELLO, "citations": []},
-            }
-        },
-        citation_repo_base=_CITATION_REPO_BASE,
-    )
-    assert result.reply_text == _REPLY_HELLO
-    assert result.citations == []
-
-
-def test_parse_outputs_json_string_citations() -> None:
-    """End may emit citations as a JSON string when it cannot emit a list."""
-    url = f"{_CITATION_REPO_BASE}vpn.md"
+def test_parse_outputs_accepts_ticket_id() -> None:
+    """Optional End ticket_id is kept and appended to the SMTP body."""
     result = parse_outputs(
         {
             "data": {
                 "status": _WORKFLOW_STATUS_SUCCEEDED,
                 "outputs": {
                     "reply_text": _REPLY_OK,
-                    "citations": f'["{url}"]',
+                    "ticket_id": _TICKET_ID,
                 },
             }
         },
-        citation_repo_base=_CITATION_REPO_BASE,
+        citation_url_base=_CITATION_URL_BASE,
     )
-    assert result.citations == [url]
+    assert result.ticket_id == _TICKET_ID
+    assert result.source_filenames == []
+    assert result.reply_text.startswith(_REPLY_OK)
+    assert constants.TICKET_ID_HEADING in result.reply_text
+    assert _TICKET_ID in result.reply_text
 
 
-def test_parse_outputs_rejects_citation_outside_base() -> None:
-    """A URL that does not start with the repo prefix is rejected."""
+def test_parse_outputs_empty_source_filenames_ok() -> None:
+    """Empty source_filenames is a KB miss, not a validation error."""
+    result = parse_outputs(
+        {
+            "data": {
+                "status": _WORKFLOW_STATUS_SUCCEEDED,
+                "outputs": {
+                    "reply_text": _REPLY_HELLO,
+                    "source_filenames": [],
+                },
+            }
+        },
+        citation_url_base=_CITATION_URL_BASE,
+    )
+    assert result.reply_text == _REPLY_HELLO
+    assert result.ticket_id is None
+    assert result.source_filenames == []
+
+
+def test_parse_outputs_source_filenames_list() -> None:
+    """A list of filenames becomes a Sources footer of citation URLs."""
+    result = parse_outputs(
+        {
+            "data": {
+                "status": _WORKFLOW_STATUS_SUCCEEDED,
+                "outputs": {
+                    "reply_text": _REPLY_OK,
+                    "source_filenames": [_SOURCE_FILENAME],
+                },
+            }
+        },
+        citation_url_base=_CITATION_URL_BASE,
+    )
+    citation_url = f"{_CITATION_URL_BASE}{_SOURCE_FILENAME}"
+    assert result.source_filenames == [_SOURCE_FILENAME]
+    assert result.reply_text.startswith(_REPLY_OK)
+    assert constants.CITATION_SOURCES_HEADING in result.reply_text
+    assert citation_url in result.reply_text
+
+
+def test_parse_outputs_empty_base_rejects_filenames() -> None:
+    """Non-empty source_filenames require a configured URL prefix."""
     with pytest.raises(OutputsError):
         parse_outputs(
             {
@@ -75,9 +106,26 @@ def test_parse_outputs_rejects_citation_outside_base() -> None:
                     "status": _WORKFLOW_STATUS_SUCCEEDED,
                     "outputs": {
                         "reply_text": _REPLY_OK,
-                        "citations": [_CITATION_OUTSIDE_BASE],
+                        "source_filenames": [_SOURCE_FILENAME],
                     },
                 }
             },
-            citation_repo_base=_CITATION_REPO_BASE,
+            citation_url_base="",
+        )
+
+
+def test_parse_outputs_rejects_nested_source_filename() -> None:
+    """A nested path or URL is not a knowledge_base filename."""
+    with pytest.raises(OutputsError):
+        parse_outputs(
+            {
+                "data": {
+                    "status": _WORKFLOW_STATUS_SUCCEEDED,
+                    "outputs": {
+                        "reply_text": _REPLY_OK,
+                        "source_filenames": [_SOURCE_FILENAME_NESTED],
+                    },
+                }
+            },
+            citation_url_base=_CITATION_URL_BASE,
         )

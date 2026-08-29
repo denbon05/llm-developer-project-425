@@ -16,7 +16,7 @@ APP_COMPOSE := docker compose -f compose.yml
 PYTHON_VERSION := $(shell tr -d '[:space:]' < .python-version)
 export PYTHON_VERSION
 
-.PHONY: help bootstrap test eval format migrate-create migrate-up
+.PHONY: help bootstrap test eval format migrate-create migrate-up migrate-down
 
 help:
 	@echo "Application stack (two-terminal foreground up; includes email-gateway):"
@@ -31,6 +31,8 @@ help:
 	@echo "  make migrate-create m=\"…\" Autogenerate Alembic migration (helpdesk-db up)"
 	@echo "  make migrate-up             Apply pending migrations (alembic upgrade head)"
 	@echo "  make migrate-up ARGS=--sql  Print SQL only (Alembic offline mode)"
+	@echo "  make migrate-down           Rollback one migration (alembic downgrade -1)"
+	@echo "  make migrate-down ARGS=--sql  Print SQL only (Alembic offline mode)"
 	@echo "  Compose: docker compose (v2; Docker Desktop)"
 
 bootstrap: dify-env app-env
@@ -72,6 +74,9 @@ migrate-create:
 
 migrate-up:
 	uv run alembic upgrade head $(ARGS)
+
+migrate-down:
+	uv run alembic downgrade -1 $(ARGS)
 
 # helpers
 dify-env:

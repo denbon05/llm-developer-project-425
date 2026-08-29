@@ -3,8 +3,8 @@
 Not production constants: synthetic keys, allow-list host, and PII samples.
 """
 
-# Architecture example prefix; citations must start with this or be rejected.
-CITATION_REPO_BASE = (
+# Stand-in for CITATION_URL_BASE.
+CITATION_URL_BASE = (
     "https://github.com/example/helpdesk/blob/main/knowledge_base/"
 )
 

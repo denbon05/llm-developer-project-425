@@ -31,6 +31,7 @@ from .greenmail import (
     wait_for_unseen,
 )
 from .testdata import (
+    CITATION_URL_BASE,
     DIFY_APP_KEY,
     INPUT_REQUEST_TEXT,
     INPUT_SUBJECT,
@@ -65,23 +66,26 @@ _GREETING_BODY = "Hi there!"
 _TOXIC_TERM = constants.TOXICITY_TERMS[0]
 _TOXIC_BODY = f"you {_TOXIC_TERM}, fix the vpn"
 
-# Workflow End text that must not be SMTP-sent when citations fail.
+# Workflow End text that must not be SMTP-sent when source_filenames fail.
 _REJECTED_WORKFLOW_REPLY = "should not send"
-# URL outside citation_repo_base (testdata.CITATION_REPO_BASE).
-_CITATION_OUTSIDE_BASE = "https://evil.example/kb/x.md"
+_SOURCE_FILENAME_NESTED = "../secret.md"
+_SOURCE_FILENAME = "vpn-access.md"
+_CITED_REPLY = "use the company vpn"
 
 
 class FakeDify:
     """httpx MockTransport for blocking ``POST …/v1/workflows/run``.
 
     Modes: echo (reply_text = request_text), http_error (HTTP 500),
-    missing_reply (empty outputs), bad_citations (URL off repo base).
+    missing_reply (empty outputs), bad_source_filenames (nested path, not a
+    filename), cited (reply plus knowledge_base filename).
     """
 
     MODE_ECHO = "echo"
     MODE_HTTP_ERROR = "http_error"
     MODE_MISSING_REPLY = "missing_reply"
-    MODE_BAD_CITATIONS = "bad_citations"
+    MODE_BAD_SOURCE_FILENAMES = "bad_source_filenames"
+    MODE_CITED = "cited"
 
     mode: str
     requests: list[httpx.Request]
@@ -105,14 +109,26 @@ class FakeDify:
                 "data": {"status": "succeeded", "outputs": {}},
             }
             return httpx.Response(HTTPStatus.OK, json=response_json)
-        if self.mode == self.MODE_BAD_CITATIONS:
+        if self.mode == self.MODE_BAD_SOURCE_FILENAMES:
             response_json = {
                 "workflow_run_id": "wf-cite",
                 "data": {
                     "status": "succeeded",
                     "outputs": {
                         "reply_text": _REJECTED_WORKFLOW_REPLY,
-                        "citations": [_CITATION_OUTSIDE_BASE],
+                        "source_filenames": [_SOURCE_FILENAME_NESTED],
+                    },
+                },
+            }
+            return httpx.Response(HTTPStatus.OK, json=response_json)
+        if self.mode == self.MODE_CITED:
+            response_json = {
+                "workflow_run_id": "wf-cited",
+                "data": {
+                    "status": "succeeded",
+                    "outputs": {
+                        "reply_text": _CITED_REPLY,
+                        "source_filenames": [_SOURCE_FILENAME],
                     },
                 },
             }
@@ -354,23 +370,51 @@ async def test_missing_reply_text_leaves_unseen(
 
 
 @pytest.mark.asyncio
-async def test_citation_outside_base_leaves_unseen(
+async def test_invalid_source_filename_leaves_unseen(
     greenmail: GreenMailEndpoints,
     gateway_settings: Settings,
 ) -> None:
-    """Citation outside the repo base is not SMTP'd; mail stays UNSEEN."""
+    """A nested citation path is not SMTP'd; mail stays UNSEEN."""
     deliver_message(
         greenmail,
         make_text_mail(subject="cite", body=_CITE_BODY),
     )
     wait_for_unseen(greenmail, SUPPORT_EMAIL, SUPPORT_PASSWORD)
 
-    fake_dify = FakeDify(mode=FakeDify.MODE_BAD_CITATIONS)
+    fake_dify = FakeDify(mode=FakeDify.MODE_BAD_SOURCE_FILENAMES)
     await _run_one_poll_cycle(gateway_settings, fake_dify)
 
     assert list_inbox_bodies(greenmail, EMPLOYEE_EMAIL, EMPLOYEE_PASSWORD) == []
     # Non-empty: inbound mail stayed UNSEEN.
     assert list_unseen_uids(greenmail, SUPPORT_EMAIL, SUPPORT_PASSWORD)
+
+
+@pytest.mark.asyncio
+async def test_source_filenames_appended_as_sources_footer(
+    greenmail: GreenMailEndpoints,
+    gateway_settings: Settings,
+) -> None:
+    """End filenames become a Sources footer of citation URLs on SMTP."""
+    deliver_message(
+        greenmail,
+        make_text_mail(subject="cite", body=_CITE_BODY),
+    )
+    wait_for_unseen(greenmail, SUPPORT_EMAIL, SUPPORT_PASSWORD)
+
+    fake_dify = FakeDify(mode=FakeDify.MODE_CITED)
+    await _run_one_poll_cycle(gateway_settings, fake_dify)
+
+    reply_bodies = wait_for_inbox_bodies(
+        greenmail, EMPLOYEE_EMAIL, EMPLOYEE_PASSWORD
+    )
+    citation_url = f"{CITATION_URL_BASE}{_SOURCE_FILENAME}"
+    assert any(
+        _CITED_REPLY in item
+        and constants.CITATION_SOURCES_HEADING in item
+        and citation_url in item
+        for item in reply_bodies
+    )
+    assert list_unseen_uids(greenmail, SUPPORT_EMAIL, SUPPORT_PASSWORD) == []
 
 
 @pytest.mark.asyncio

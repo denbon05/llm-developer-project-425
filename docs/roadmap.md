@@ -86,7 +86,7 @@ intelligence). `list-my-tickets` already matches the Studio-binding contract
   [architecture.md](architecture.md) (early `list-my-tickets` tool node
   bound to live ticketing, retrieve then answer LLM, non-closed vs KB-hit
   vs knowledge-gap branches, sequential appends, categorizer only on the
-  gap path, End `reply_text` / `ticket_id` / `citations`). Re-export
+  gap path, End `reply_text` / `ticket_id` / `source_filenames`). Re-export
   secret-free no-model DSL (Code/Template stubs). Same gateway tests
   against fake Dify. Malformed/failure → error log, no SMTP, leave UNSEEN
   (retry next poll). Not live Yandex.

@@ -65,8 +65,9 @@ human/operator path remains out of scope.
   bi-encoder `ibm/granite-embedding:30m` via Ollama (vector search;
   recorded `candidate_k=10`, score ≥ `0.7`). LLM-as-reranker (small Yandex
   Cloud AI Studio FM, model TBD) is Phase 7; no Cohere/Jina rerank slot.
-  Recorded `rerank_top_k=3` waits for that step. Citations are trusted Git
-  URLs under a configured repo base to `knowledge_base/` paths.
+  Recorded `rerank_top_k=3` waits for that step. End `source_filenames`
+  are `knowledge_base/` filenames from retrieval; the gateway builds Git
+  URLs under a configured URL prefix.
 - **Lifecycle schedule** — the Escalate Dify app calls private HTTP
   `POST /v1/tickets/escalate-stale`. Ticketing selects `open` rows whose
   `updated_at` is older than the inactivity threshold (default
@@ -165,8 +166,8 @@ both with foreground `make dify-stack-up` / `make app-stack-up` (two
 terminals). Secret-free Dify App DSL exports live under `dify/apps/` —
 `email_helpdesk.yml` is the graph above with Knowledge Retrieval (local
 embeddings) and Code/Template stubs for answer and categorizer (MCP tool
-nodes, IF/ELSE, one Variable Aggregator, End `reply_text` / `ticket_id`).
-The Escalate app is Phase 8.
+nodes, IF/ELSE, one Variable Aggregator, End `reply_text` / `ticket_id` /
+`source_filenames`). The Escalate app is Phase 8.
 
 ## Minimal Dify contract
 
@@ -180,15 +181,18 @@ inputs (User Input / Start):
   request_text    # already-masked body
 
 outputs (End):
-  reply_text      # required string; gateway SMTP-sends this
-  ticket_id       # optional string; present when a ticket exists/was created
-  citations       # optional; omit/skip on KB miss. Trusted repo URLs to
-                  # knowledge_base/ paths. If End cannot emit a list,
-                  # a JSON string is allowed.
+  reply_text         # required string; SMTP body (gateway may append
+                     # Ticket: and Sources:)
+  ticket_id          # optional string; present when a ticket exists/was created
+  source_filenames   # optional list[str] or null; omit/[] on KB miss.
+                     # knowledge_base/ filenames (not URLs).
 ```
 
-The gateway validates outputs. Extra keys are ignored. It rejects citation
-URLs outside a configured repository base. Blocking JSON may still expose
+The gateway validates outputs. Extra keys are ignored. It appends a
+`Ticket:` line when `ticket_id` is set. It rejects `source_filenames`
+that are not a single filename, builds `{CITATION_URL_BASE}{filename}`,
+and appends a `Sources:` footer. Empty, omitted, or null
+`source_filenames` skip the footer. Blocking JSON may still expose
 `workflow_run_id` / usage metadata. SSE is optional, not the Phase 4
 interface.
 
@@ -253,7 +257,9 @@ then may set `\Seen`.
    outputs: log error, skip SMTP, leave UNSEEN. Usage on the blocking
    response may be passed on the agent append (Dify performs that append).
    Bad or out-of-scope ids fail on the MCP call inside Dify.
-7. On valid outputs, the gateway SMTP-sends `reply_text` using the live
+7. On valid outputs, the gateway SMTP-sends `reply_text` (with a `Ticket:`
+   line when End `ticket_id` is set, and a Sources footer when
+   `source_filenames` is non-empty) using the live
    mail-session recipient, then may set IMAP `\Seen`. A failed Dify call
    does not SMTP and does not set `\Seen`. Effects are best-effort
    at-least-once. SMTP duplicate window: one poll interval (default 60s)
@@ -264,13 +270,14 @@ then may set `\Seen`.
 - Email bodies, headers, sanitized HTML, retrieved passages, and all model
   output are untrusted. Attachment contents do not enter the system.
 - Repository-controlled workflow schemas, tool definitions, governing
-  instructions, and source-ID-to-URL mappings are trusted configuration.
+  instructions, and source-filename-to-URL mappings are trusted configuration.
   Retrieved document text remains data: embedded instructions cannot change
   routing, tool authorization, or trusted citation URLs.
 - Dify and its model are behind a validation seam: only validated
-  `data.outputs` (and citation URLs under the configured repo base) can
-  drive gateway SMTP. Ticketing independently enforces authorization, valid
-  transitions, and masking for every HTTP/MCP mutation.
+  `data.outputs` can drive gateway SMTP. End `source_filenames` are
+  knowledge_base filenames; the gateway turns them into citation URLs.
+  Ticketing independently enforces authorization, valid transitions, and
+  masking for every HTTP/MCP mutation.
 - MCP tools take `user_id` (sender email) as a tool argument. Ticketing
   scopes each call to that value and rejects ticket ids owned by a different
   `user_id`. In the workflow, MCP arguments are wired from Start / list /

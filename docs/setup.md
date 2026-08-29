@@ -111,10 +111,12 @@ Pins, ports, and GreenMail accounts are in the tables below.
     **Knowledge Retrieval** node (already in the imported DSL) and
     select dataset `employee-helpdesk`. Exported `dataset_ids` are
     instance-local; a fresh Studio must rebind. Query stays Start
-    `request_text`. Keep IF/ELSE and MCP. The **Extract hits** Code node
-    sets `has_kb_hits` from whether retrieval `result` is empty.
-    Publish. Re-export secret-free DSL to `dify/apps/email_helpdesk.yml`
-    only when the graph changed.
+    `request_text`. Keep IF/ELSE and MCP. The **Prepare sources** Code node
+    maps retrieval `title` (imported filename) to End `source_filenames` and
+    `has_kb_hits` from whether retrieval `result` is empty. The gateway
+    turns those filenames into Git URLs. Do not put URLs in the LLM
+    prompt or a Sources template. Publish. Re-export secret-free DSL to
+    `dify/apps/email_helpdesk.yml` only when the graph changed.
 
 11. **Knowledge Service API key and retrieval evaluation.** In Dify,
     open **Knowledge**, select **Service API** in the top-right, and

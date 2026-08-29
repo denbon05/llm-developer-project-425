@@ -121,7 +121,7 @@ class Client:
         try:
             outputs = parse_outputs(
                 payload,
-                citation_repo_base=self._settings.citation_repo_base,
+                citation_url_base=self._settings.citation_url_base,
             )
         except OutputsError as exc:
             return CallResult(

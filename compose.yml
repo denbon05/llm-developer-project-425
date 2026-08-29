@@ -121,7 +121,7 @@ services:
       EMAIL_POLL_INTERVAL_SECONDS: ${EMAIL_POLL_INTERVAL_SECONDS}
       DIFY_WORKFLOW_URL: http://nginx:80/v1/workflows/run
       DIFY_EMAIL_HELPDESK_API_KEY: ${DIFY_EMAIL_HELPDESK_API_KEY}
-      CITATION_REPO_BASE: ${CITATION_REPO_BASE}
+      CITATION_URL_BASE: ${CITATION_URL_BASE}
     command: ["uv", "run", "email-gateway"]
     volumes:
       - ./src:/app/src

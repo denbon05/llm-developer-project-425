@@ -26,7 +26,7 @@ from .greenmail import (
     purge_inbox,
 )
 from .testdata import (
-    CITATION_REPO_BASE,
+    CITATION_URL_BASE,
     DIFY_APP_KEY,
     DIFY_TIMEOUT_SECONDS,
     DIFY_WORKFLOW_URL,
@@ -84,7 +84,7 @@ def gateway_settings(greenmail: GreenMailEndpoints) -> Settings:
         dify_email_helpdesk_api_key=DIFY_APP_KEY,
         email_poll_interval_seconds=POLL_INTERVAL_SECONDS,
         dify_timeout_seconds=DIFY_TIMEOUT_SECONDS,
-        citation_repo_base=CITATION_REPO_BASE,
+        citation_url_base=CITATION_URL_BASE,
         static_ack_text=constants.STATIC_ACK_TEXT,
     )
 
