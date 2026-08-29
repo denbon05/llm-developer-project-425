@@ -127,9 +127,12 @@ intelligence). `list-my-tickets` already matches the Studio-binding contract
 ## Phase 7 — Controlled intelligence
 
 - **Owner:** bounded Yandex/RAG integration agent.
-- **Scope:** injection/scope, live Yandex generator, LLM-as-reranker
-  (Studio FM, model TBD), categorizer SML, grounded citations, token
-  accounting. Toxicity/hello stay gateway regex (Phase 4).
+- **Scope:** injection/scope (prompt-injection does not create tickets);
+  knowledge-gap reply admits the miss, creates a ticket, SMTP includes the
+  new `ticket_id`; no read-back of `messages`; SEC-2 mask format; live
+  Yandex generator; LLM-as-reranker (Studio FM, model TBD); categorizer
+  SML; grounded citations; token accounting. Toxicity/hello stay gateway
+  regex (Phase 4).
 - **Verification gate:** merge-gate uses fake Dify and local dependencies.
   Live Yandex classifier/generator, usage matching, and full Dify/Yandex
   behavior are opt-in smoke/evaluation checks.
@@ -140,8 +143,9 @@ intelligence). `list-my-tickets` already matches the Studio-binding contract
 
 - **Owner:** bounded lifecycle/verification agent, with final coordinating
   review.
-- **Scope:** second Dify app (Schedule Trigger, daily / 24h) that **only**
-  HTTP-calls existing `POST /v1/tickets/escalate-stale`; plus negatives,
+- **Scope:** second Dify app (Schedule Trigger, daily / 24h, hourly for
+  demo) that **only** HTTP-calls existing `POST /v1/tickets/escalate-stale`
+  with a retry policy (counts TBD); plus negatives (including injection),
   restore/re-ingestion, security checks, and GreenMail acceptance with
   local/fake model behavior. Escalate-stale already exists from Phase 3.
   Dify does not own escalate rules.

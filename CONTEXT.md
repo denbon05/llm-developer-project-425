@@ -15,16 +15,18 @@ documents.
 
 - **Ticket** — an independently tracked work item with one category, one
   lifecycle status, masked **text** in `tickets.text` (set at create, not
-  updated), conversation history in `messages`, `updated_at` as last
-  activity time (create or append), and (for the course MVP) `user_id`
-  equal to the synthetic sender email used as the employee key. When the
-  email workflow **opens** a ticket, both `tickets.text` (`create-ticket`)
-  and a first `messages` row for that inbound mail (`append-message`,
-  role `user`) exist. The MCP `create-ticket` tool itself does not insert
-  a message.
+  updated), `messages` for audit and token fields (not agent memory),
+  `updated_at` as last activity time (create or append), and (for the
+  course MVP) `user_id` equal to the synthetic sender email used as the
+  employee key. Ticket **`id`** is a UUID. When the email workflow
+  **opens** a ticket, both `tickets.text` (`create-ticket`) and a first
+  `messages` row for that inbound mail (`append-message`, role `user`)
+  exist. The MCP `create-ticket` tool itself does not insert a message.
 - **Message** — one immutable contribution that always belongs to a ticket
-  (`ticket_id` required), attributed to `user` or `agent`, with masked text.
-  Agent rows may store `model` / `tokens_in` / `tokens_out` / `latency_ms`.
+  (`ticket_id` required), attributed to `user` or `agent`, with masked
+  text. Agent rows may store `model` / `tokens_in` / `tokens_out` /
+  `latency_ms`. Nothing reads `messages` back into the assistant;
+  follow-up context is the inbound mail (the employee quotes the thread).
 - **Knowledge gap** — absence of sufficient reliable company knowledge to
   answer a legitimate help-desk request.
 - **Legitimate unsupported help-desk request** — an in-scope employee support

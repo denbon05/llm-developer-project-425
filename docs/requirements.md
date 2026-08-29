@@ -36,13 +36,13 @@ ticket exists.
 - **FR-3 — Controlled routing.** After normalization and masking, the gateway
   POSTs a blocking Dify run unless gateway intake already replied (it does
   **not** call MCP). Dify calls `list-my-tickets` to branch. Injection/scope
-  (later phases)
-  distinguish `injection`, `non_helpdesk`, and legitimate help-desk content:
-  injection gets a static block; non-helpdesk a bounded refusal (those
-  `reply_text` values SMTP when the workflow finishes). A gateway Dify HTTP
-  or outputs failure is not fail-open: log the error, skip SMTP, leave the
-  message UNSEEN, retry on the next poll. None of those paths create a
-  ticket from the gateway.
+  (Phase 7) distinguish `injection`, `non_helpdesk`, and legitimate
+  help-desk content:
+  injection gets a static block and **no ticket**; non-helpdesk a bounded
+  refusal (those `reply_text` values SMTP when the workflow finishes). A
+  gateway Dify HTTP or outputs failure is not fail-open: log the error, skip
+  SMTP, leave the message UNSEEN, retry on the next poll. None of those
+  paths create a ticket from the gateway.
   Legitimate content follows this table (employee **cannot** override):
 
   | State | KB can answer | DB |
@@ -51,9 +51,11 @@ ticket exists.
   | No non-`closed` ticket | no | `create-ticket` (`tickets.text` only) **and** `append-message` user (inbound mail) **then** `append-message` agent (reply). Uncategorized → `other`. |
   | Non-`closed` ticket already exists (`open` **or** `escalated`) | yes or no | **always** append user + agent; **still run KB** |
 
-  `create-ticket` MCP remains text-only (no `messages` row at the tool). The
-  **workflow** adds the first user mail via `append-message`. After a
-  non-`closed` ticket exists, persist messages even if KB could answer. The
+  On a knowledge gap (row 2), `reply_text` admits the miss; End `ticket_id`
+  is set; SMTP includes that id (gateway `Ticket:` line). `create-ticket`
+  MCP remains text-only (no `messages` row at the tool). The **workflow**
+  adds the first user mail via `append-message`. After a non-`closed`
+  ticket exists, persist messages even if KB could answer. The
   ticket must exist and `ticket.user_id` must match `user_id` or append is
   `NOT_FOUND`. Append inserts a message and bumps `tickets.updated_at`; it
   does not change ticket text or status. Agent rows may include usage. A
@@ -100,8 +102,9 @@ ticket exists.
   create, not updated later). A message always belongs to a ticket
   (`ticket_id` required FK). `model`
   / `tokens_in` / `tokens_out` / `latency_ms` land on agent messages at
-  `append-message` time. Persistence uses VARCHAR for enum fields (ORM enums,
-  not Postgres ENUM types); see architecture MVP schema.
+  `append-message` time. Those rows are audit and token accounting, not
+  agent memory (no list-messages tool). Persistence uses VARCHAR for enum
+  fields (ORM enums, not Postgres ENUM types); see architecture MVP schema.
 - **FR-7 — Ticket lifecycle.** A new ticket starts `open`. Escalation is
   inactivity on `updated_at`, not calendar time from create that ignores
   chat. Scheduled HTTP selects `status=open` with `updated_at` older than
@@ -128,9 +131,10 @@ ticket exists.
      `dify/apps/email_helpdesk.yml` is the architecture graph with
      Knowledge Retrieval (local embeddings) and Code/Template stubs for
      answer and categorizer (not a Start→End echo).
-  2. Escalate — Schedule Trigger (daily / 24h) that **only** HTTP-calls
-     `POST /v1/tickets/escalate-stale`. No escalate logic in Dify. User Input
-     vs Trigger are different start types; keep two apps.
+  2. Escalate — Schedule Trigger (daily / 24h; hourly allowed for demo)
+     that **only** HTTP-calls `POST /v1/tickets/escalate-stale`, with a
+     retry policy (counts TBD). No escalate logic in Dify. User Input vs
+     Trigger are different start types; keep two apps.
   Apps are authored in the UI, then exported as secret-free DSL under
   `dify/apps/` (one export per Studio App). The gateway depends on this small
   HTTP contract, not Studio internals (console session URLs). Provider-specific
@@ -153,10 +157,12 @@ ticket exists.
   non-sensitive data, but applies production-like privacy controls.
 - **SEC-2 — PII minimization.** Deterministic **one-way** masking runs before
   content is sent to Dify and independently before ticket/message **text**
-  enters durable business fields. Masking replaces matches with placeholders
-  (for example `[EMAIL]`, `[PHONE]`, `[CARD]`); it is not reversible
-  encrypt/decrypt. Required detection covers email addresses, phone-like
-  values, and payment-card candidates that pass a Luhn check. GreenMail
+  enters durable business fields. Masking uses one visible format (the same
+  in every store humans read): email → `[email]`; phone →
+  `+7 (***) ***-**-NN` (last two digits kept); card →
+  `****-****-****-****`. It is not reversible encrypt/decrypt.
+  Required detection covers email addresses, phone-like values, and
+  payment-card candidates that pass a Luhn check. GreenMail
   necessarily retains raw synthetic transport messages and is outside this
   text-masking invariant.
 - **SEC-3 — Employee scope.** `user_id` is the synthetic sender email (MVP).
@@ -196,8 +202,9 @@ ticket exists.
   `workflow_run_id` / usage metadata on that response). SSE is optional, not
   required for Phase 4.
 - Agent message records retain `model`, `tokens_in`,
-  `tokens_out`, and `latency_ms` fields set at `append-message` time. There
-  is no separate `model_calls` table or `record-usage` HTTP route.
+  `tokens_out`, and `latency_ms` fields set at `append-message` time (audit
+  and tokens; not read back as agent memory). There is no separate
+  `model_calls` table or `record-usage` HTTP route.
 - Persisted token counts must match the corresponding Dify answer-generator
   usage within 10% (live/opt-in).
 - Logs must make correlation, routing outcome, retries, ticket transitions, and
@@ -218,12 +225,15 @@ ticket exists.
    only, with no MCP message ids.
 3. A legitimate request below the evidence threshold, with no non-`closed`
    ticket, creates exactly one ticket **and** a first user `messages` row,
-   then an agent row for the reply; an uncategorized request is stored as
-   `other` (fallback when the categorizer is unsure). Categorizer runs
-   only on this knowledge-gap path.
+   then an agent row for the reply. `reply_text` admits the knowledge gap;
+   the SMTP body includes the new ticket id. An uncategorized request is
+   stored as `other` (fallback when the categorizer is unsure). Categorizer
+   runs only on this knowledge-gap path.
 4. Toxicity/hello matches in the **gateway** produce a static SMTP body.
-   Dify is **not** called. No ticket. Injection and non-helpdesk input
-   produce a static block and a bounded refusal when the workflow finishes.
+   Dify is **not** called. No ticket. Injection (including “ignore previous
+   instructions” in the request body) and non-helpdesk input produce a
+   static block and a bounded refusal when the workflow finishes; injection
+   does not create a ticket.
    A gateway Dify HTTP or outputs failure logs an error, skips SMTP, and
    leaves the message UNSEEN for the next poll (no fail-open canned body);
    none of those paths creates a ticket from the gateway.
@@ -250,13 +260,14 @@ ticket exists.
    ticket `open` while a similarly aged idle ticket escalates. After
    `escalated`, later employee mail still appends user + agent and still
    runs KB; status stays `escalated`. A Dify Schedule Trigger app (Phase 8)
-   only calls this HTTP; it does not encode escalate rules. The
-   human/operator path remains out of scope.
+   only calls this HTTP (retry policy, counts TBD); it does not encode
+   escalate rules. The human/operator path remains out of scope.
 8. Privacy tests show required PII absent from Dify-bound content, durable
-   ticket/message **text**, and application logs/errors. The documented
-   business-store exception is MVP `tickets.user_id` (synthetic sender
-   email); GreenMail's raw synthetic transport messages are explicitly
-   outside the text-masking invariant.
+   ticket/message **text**, and application logs/errors, and that remaining
+   matches use the SEC-2 mask shapes. The documented business-store
+   exception is MVP `tickets.user_id` (synthetic sender email); GreenMail's
+   raw synthetic transport messages are explicitly outside the text-masking
+   invariant.
 9. Gateway retry handling uses mailbox hints (`\Seen` after successful SMTP
    of an intake or workflow reply; Dify failure leaves UNSEEN) and
    best-effort semantics; tests demonstrate the documented at-least-once
@@ -304,8 +315,8 @@ ticket exists.
 
 ## Provisional parameters
 
-Toxicity word-list contents, LLM-rerank model id, and escalation intervals
-will be calibrated at their phase gates. Recorded retrieval defaults:
+Toxicity word-list contents, LLM-rerank model id, escalation intervals,
+and escalate HTTP retry counts will be calibrated at their phase gates. Recorded retrieval defaults:
 `candidate_k=10`, `rerank_top_k=3`, score ≥ `0.7` (LLM-rerank remains TBD
 until Phase 7). Until then, the required outcomes above are normative:
 KB hit with no non-`closed` ticket → email only (no ticket, no `messages`);

@@ -9,7 +9,8 @@ An email help-desk assistant for employees. The **gateway** owns IMAP/SMTP;
 hit with no non-`closed` ticket is emailed with citations (no ticket, no
 `messages` row). A knowledge gap with no non-`closed` ticket opens a ticket
 (`create-ticket`; `text` in `tickets.text`) **and** records the first user
-mail via `append-message`. A non-`closed` ticket (`open` or `escalated`)
+mail via `append-message`. The reply admits the gap and the mail includes
+the new ticket id. A non-`closed` ticket (`open` or `escalated`)
 always appends user + agent and still retrieves. The employee cannot force
 a ticket when knowledge can answer.
 

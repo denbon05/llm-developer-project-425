@@ -39,26 +39,30 @@ human/operator path remains out of scope.
     cross-encoder; no Cohere/Jina rerank slot) then a dedicated answer
     LLM; (3) IF a non-`closed` ticket: answer LLM → append user → append
     agent (sequential appends); (4) ELSE IF KB hit: answer LLM → End, no
-    MCP create/append; (5) ELSE knowledge gap: answer LLM **in parallel
-    with** a categorizer SML on `request_text` → join → `create-ticket`
-    (needs category + text) → append user → append agent. Categorizer
-    need not wait for the answer; skip it on KB-hit and follow-up paths.
-    `other` is fallback when the SML is unsure. `create-ticket` must not
-    run in parallel with append (needs `ticket_id`). Injection/scope
-    later phases. Toxicity/hello stay gateway regex.
-  - Escalate — Schedule Trigger (daily / 24h) that **only** HTTP-calls
-    `POST /v1/tickets/escalate-stale`. No escalate rules in Dify.
+    MCP create/append; (5) ELSE knowledge gap: answer LLM admits the miss
+    **in parallel with** a categorizer SML on `request_text` → join →
+    `create-ticket` (needs category + text) → append user → append agent.
+    Categorizer need not wait for the answer; skip it on KB-hit and
+    follow-up paths. `other` is fallback when the SML is unsure.
+    `create-ticket` must not run in parallel with append (needs
+    `ticket_id`). Injection/scope (Phase 7): static block, no
+    `create-ticket`. Toxicity/hello stay gateway regex.
+  - Escalate — Schedule Trigger (daily / 24h; hourly allowed for demo)
+    that **only** HTTP-calls `POST /v1/tickets/escalate-stale`, with a
+    retry policy (counts TBD). No escalate rules in Dify.
 - **Ticketing module** — the sole authority for tickets, messages, escalation
   validity, and employee scope. It derives employee scope from the `user_id`
   tool argument (synthetic sender email) on `tickets.user_id`. MCP tools are
   `create-ticket`, `list-my-tickets`, and `append-message`. Private HTTP is
   `POST /v1/tickets/escalate-stale`. v1 schema is intentionally small:
   `tickets` and `messages` (`messages.ticket_id` required FK; employee
-  scope lives on `tickets.user_id` only).
-- **Privacy module** — deterministically one-way masks email, phone-like values,
-  and Luhn-valid payment-card candidates into placeholders. The gateway uses it
-  before Dify and the ticketing module applies it again at its persistence seam
-  for ticket/message text. Masking is not reversible encrypt/decrypt.
+  scope lives on `tickets.user_id` only). No tool reads `messages` back.
+- **Privacy module** — deterministically one-way masks email, phone-like
+  values, and Luhn-valid payment-card candidates into one shared format:
+  `[email]`; `+7 (***) ***-**-NN` (last two digits kept); `****-****-****-****`.
+  The gateway uses it before Dify and the ticketing module applies it again
+  at its persistence seam for ticket/message text. Masking is not
+  reversible encrypt/decrypt.
 - **Knowledge module** — treats versioned Markdown in Git (`knowledge_base/`)
   as canonical, produces trusted source metadata, and reproducibly ingests
   one Dify knowledge base named `employee-helpdesk`. Retrieval uses local
@@ -69,13 +73,14 @@ human/operator path remains out of scope.
   are `knowledge_base/` filenames from retrieval; the gateway builds Git
   URLs under a configured URL prefix.
 - **Lifecycle schedule** — the Escalate Dify app calls private HTTP
-  `POST /v1/tickets/escalate-stale`. Ticketing selects `open` rows whose
-  `updated_at` is older than the inactivity threshold (default
-  `Settings.escalation_seconds` / 86400) and sets `escalated` (status-only).
-  Append refreshes `updated_at`, so ongoing dialogue delays escalate.
-  After `escalated`, later employee mail still uses the non-closed path;
-  append does not change status. No reopen. The human/operator path
-  remains out of scope.
+  `POST /v1/tickets/escalate-stale` (retry policy, counts TBD). Ticketing
+  selects `open` rows whose `updated_at` is older than the inactivity
+  threshold (default `Settings.escalation_seconds` / 86400) and sets
+  `escalated` (status-only). Append refreshes `updated_at`, so ongoing
+  dialogue delays escalate. After `escalated`, later employee mail still
+  uses the non-closed path; append does not change status. No reopen. The
+  human/operator path remains out of scope. Hourly trigger is allowed for
+  demo.
 
 ## Conceptual application contracts
 
@@ -182,14 +187,15 @@ inputs (User Input / Start):
 
 outputs (End):
   reply_text         # required string; SMTP body (gateway may append
-                     # Ticket: and Sources:)
-  ticket_id          # optional string; present when a ticket exists/was created
+                     # Ticket: on create, and Sources:)
+  ticket_id          # optional string; set when a ticket exists.
+                     # SMTP `Ticket:` line only if this run created it.
   source_filenames   # optional list[str] or null; omit/[] on KB miss.
                      # knowledge_base/ filenames (not URLs).
 ```
 
 The gateway validates outputs. Extra keys are ignored. It appends a
-`Ticket:` line when `ticket_id` is set. It rejects `source_filenames`
+`Ticket:` line when this run created a ticket. It rejects `source_filenames`
 that are not a single filename, builds `{CITATION_URL_BASE}{filename}`,
 and appends a `Sources:` footer. Empty, omitted, or null
 `source_filenames` skip the footer. Blocking JSON may still expose
@@ -241,13 +247,14 @@ then may set `\Seen`.
    outputs are unusable, the gateway logs an error, skips SMTP, and leaves
    the message UNSEEN for the next poll.
 5. Dify calls `list-my-tickets` and branches. Injection/scope
-   nodes (later phases): static block / bounded refusal as workflow
-   `reply_text` when the run finishes. Then ticket/KB routing:
+   (Phase 7): static block / bounded refusal as workflow `reply_text` when
+   the run finishes (injection does not `create-ticket`). Then ticket/KB
+   routing:
 
    | State | KB can answer | DB |
    | --- | --- | --- |
    | No non-`closed` ticket | yes | **no** ticket, **no** `messages` — email only + citations |
-   | No non-`closed` ticket | no | `create-ticket` **and** `append-message` user then agent |
+   | No non-`closed` ticket | no | `create-ticket` **and** `append-message` user then agent; `reply_text` admits the miss; SMTP includes the new `ticket_id` |
    | Non-`closed` ticket already exists (`open` **or** `escalated`) | yes or no | **always** append user + agent; **still run KB** |
 
    Uncategorized legitimate work uses `other` (fallback). Employee cannot
@@ -258,7 +265,7 @@ then may set `\Seen`.
    response may be passed on the agent append (Dify performs that append).
    Bad or out-of-scope ids fail on the MCP call inside Dify.
 7. On valid outputs, the gateway SMTP-sends `reply_text` (with a `Ticket:`
-   line when End `ticket_id` is set, and a Sources footer when
+   line when this run created a ticket, and a Sources footer when
    `source_filenames` is non-empty) using the live
    mail-session recipient, then may set IMAP `\Seen`. A failed Dify call
    does not SMTP and does not set `\Seen`. Effects are best-effort
@@ -295,7 +302,8 @@ then may set `\Seen`.
   MVP synthetic `user_id` email, category, status, masked `text` set at
   create, timestamps),
   and `messages` (required `ticket_id` FK; role; masked `text`; usage fields
-  on agent rows). Employee scope is `tickets.user_id` only. No outbox,
+  on agent rows — audit and tokens, not read back as agent memory). Employee
+  scope is `tickets.user_id` only. No outbox,
   quarantine, idempotency, or scope-binding tables in v1. Ticketing
   persistence uses async SQLAlchemy with the psycopg driver
   (`postgresql+psycopg://`).
