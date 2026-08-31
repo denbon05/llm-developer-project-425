@@ -6,10 +6,10 @@ from privacy.masking import mask_text
 
 def test_mask_email_phone_and_luhn_card() -> None:
     """Email, phone-like values, and Luhn cards become placeholders."""
-    text = "Contact a@b.co or +1 (555) 123-4567; card 4111111111111111"
+    text = "Contact a@b.co or +33 1 23 45 67 89; card 4111111111111111"
     masked = mask_text(text)
     assert constants.PLACEHOLDER_EMAIL in masked
-    assert constants.PLACEHOLDER_PHONE in masked
+    assert "+** *** ** ** 89" in masked
     assert constants.PLACEHOLDER_CARD in masked
     assert "a@b.co" not in masked
     assert "4111111111111111" not in masked

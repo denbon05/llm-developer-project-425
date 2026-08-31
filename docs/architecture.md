@@ -57,7 +57,7 @@ human/operator path remains out of scope.
   scope lives on `tickets.user_id` only). No tool reads `messages` back.
 - **Privacy module** — deterministically one-way masks email, phone-like
   values, and Luhn-valid payment-card candidates into one shared format:
-  `[email]`; `+7 (***) ***-**-NN` (last two digits kept); `****-****-****-****`.
+  `[email]`; `+** *** ** ** NN` (last two digits kept); `****-****-****-****`.
   The gateway uses it before Dify and the ticketing module applies it again
   at its persistence seam for ticket/message text. Masking is not
   reversible encrypt/decrypt.

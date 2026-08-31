@@ -29,6 +29,9 @@ from ticketing.db import Message, Ticket, new_id, utcnow
 _STATUS_BY_VALUE: dict[str, TicketStatus] = {
     status.value: status for status in TicketStatus
 }
+_CATEGORY_BY_VALUE: dict[str, TicketCategory] = {
+    category.value: category for category in TicketCategory
+}
 
 
 class DomainError(Exception):
@@ -93,7 +96,7 @@ class TicketingService:
         self,
         *,
         user_id: str,
-        category: TicketCategory,
+        category: str,
         text: str,
     ) -> CreateTicketResult:
         """Create one ``open`` ticket with masked text. No message row.
@@ -102,6 +105,12 @@ class TicketingService:
         ``tickets.text`` is set once. Chat history is ``append_message``.
         """
         user_id = self._require_user_id(user_id)
+        parsed_category = _CATEGORY_BY_VALUE.get(category)
+        if parsed_category is None:
+            raise DomainError(
+                DomainErrorCode.NOT_ELIGIBLE,
+                "unknown ticket category",
+            )
         active_ticket = await self._find_active_ticket(user_id)
         if active_ticket is not None:
             raise DomainError(
@@ -112,7 +121,7 @@ class TicketingService:
         ticket = Ticket(
             id=new_id(),
             user_id=user_id,
-            category=category,
+            category=parsed_category,
             status=TicketStatus.OPEN,
             text=mask_text(text),
         )
@@ -120,7 +129,7 @@ class TicketingService:
         return CreateTicketResult(
             ticket_id=ticket.id,
             status=TicketStatus.OPEN,
-            category=category,
+            category=parsed_category,
         )
 
     def _parse_list_statuses(

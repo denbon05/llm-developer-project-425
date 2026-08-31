@@ -1,8 +1,8 @@
 """One-way PII masking for pre-model and persistence seams.
 
-Replaces matches with ``constants.PLACEHOLDER_*`` tokens; not reversible
-encrypt/decrypt. Ticket/message text must be masked before durable business
-fields; raw transport mail is outside this invariant.
+Replaces matches with one-way mask shapes; not reversible encrypt/decrypt.
+Ticket/message text must be masked before durable business fields; raw
+transport mail is outside this invariant.
 """
 
 from __future__ import annotations
@@ -65,11 +65,12 @@ def _mask_card(match: re.Match[str]) -> str:
 
 
 def _mask_phone(match: re.Match[str]) -> str:
-    """Replace a phone-like digit run with the phone placeholder."""
+    """Replace a phone-like digit run with the phone mask."""
     raw = match.group(0)
     digits = re.sub(r"\D", "", raw)
     if _PHONE_DIGITS_MIN <= len(digits) <= _PHONE_DIGITS_MAX:
-        return constants.PLACEHOLDER_PHONE
+        tail = digits[-constants.PHONE_VISIBLE_TAIL_DIGITS :]
+        return constants.PHONE_MASK_TEMPLATE.format(tail=tail)
     return raw
 
 

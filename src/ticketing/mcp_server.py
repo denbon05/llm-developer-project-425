@@ -18,7 +18,7 @@ from typing import Any
 from mcp.server.mcpserver import MCPServer
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from contracts.enums import DomainErrorCode, MessageRole, TicketCategory
+from contracts.enums import DomainErrorCode, MessageRole
 from ticketing.config import Settings
 from ticketing.service import DomainError, TicketingService
 
@@ -93,7 +93,7 @@ async def mcp_create_ticket(
     async def op(service: TicketingService):
         result = await service.create_ticket(
             user_id=user_id,
-            category=TicketCategory(category),
+            category=category,
             text=text,
         )
         return {

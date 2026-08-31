@@ -40,6 +40,7 @@ from .testdata import (
     PII_EMAIL_IN_BODY,
     PII_EMAIL_IN_SUBJECT,
     PII_PHONE,
+    PII_PHONE_MASK,
     RESPONSE_MODE_BLOCKING,
     START_INPUT_KEYS,
 )
@@ -248,7 +249,7 @@ async def test_mask_before_dify_and_blocking_contract(
     assert PII_CARD not in combined
     assert PII_PHONE not in combined
     assert privacy_constants.PLACEHOLDER_EMAIL in combined
-    assert privacy_constants.PLACEHOLDER_PHONE in combined
+    assert PII_PHONE_MASK in combined
     assert privacy_constants.PLACEHOLDER_CARD in combined
 
 

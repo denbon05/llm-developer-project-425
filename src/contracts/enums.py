@@ -11,13 +11,12 @@ class MessageRole(StrEnum):
 
 
 class TicketCategory(StrEnum):
-    """Help-desk category; ``other`` is legitimate but uncategorized."""
+    """Help-desk category."""
 
     BUG = "bug"
     ACCESS = "access"
     DOCS = "docs"
     FEATURE = "feature"
-    OTHER = "other"
 
 
 class TicketStatus(StrEnum):

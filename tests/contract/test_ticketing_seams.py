@@ -71,18 +71,18 @@ async def _set_status(
         await db_session.close()
 
 
-async def test_create_ticket_text_and_other_category(
+async def test_create_ticket_stores_masked_text_without_message(
     ticketing_app: FastAPI,
 ) -> None:
     """Create stores masked ``text``, no message row; list returns that text."""
     user_id = "employee1@example.test"
     created_ticket = await mcp_create_ticket(
         user_id=user_id,
-        category=TicketCategory.OTHER,
+        category=TicketCategory.BUG,
         text="VPN fails for me@corp.test",
     )
     assert "error" not in created_ticket
-    assert created_ticket["category"] == TicketCategory.OTHER
+    assert created_ticket["category"] == TicketCategory.BUG
     assert created_ticket["status"] == TicketStatus.OPEN
     assert "message_ids" not in created_ticket
 
@@ -220,6 +220,17 @@ async def test_list_invalid_status_error_envelope() -> None:
         statuses=["nope"],  # not a TicketStatus value
     )
     assert listed["error"]["code"] == DomainErrorCode.NOT_ELIGIBLE
+
+
+@pytest.mark.usefixtures("ticketing_app")
+async def test_create_invalid_category_error_envelope() -> None:
+    """Unknown category strings are ``NOT_ELIGIBLE``, not a raw exception."""
+    created = await mcp_create_ticket(
+        user_id="invalid-category@example.test",
+        category="nope",
+        text="vpn down",
+    )
+    assert created["error"]["code"] == DomainErrorCode.NOT_ELIGIBLE
 
 
 @pytest.mark.usefixtures("ticketing_app")

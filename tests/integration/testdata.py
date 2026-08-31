@@ -29,7 +29,8 @@ START_INPUT_KEYS = frozenset(
 RESPONSE_MODE_BLOCKING = "blocking"
 
 # Samples that privacy.mask_text must remove from subject+body before Dify.
-PII_PHONE = "+1 (555) 123-4567"
+PII_PHONE = "+33 1 23 45 67 89"
+PII_PHONE_MASK = "+** *** ** ** 89"
 PII_EMAIL_IN_BODY = "a@b.co"
 PII_EMAIL_IN_SUBJECT = "me@corp.test"
 PII_CARD = "4111111111111111"  # Luhn-valid Visa test PAN

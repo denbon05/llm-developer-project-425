@@ -161,7 +161,7 @@ ticket exists.
   content is sent to Dify and independently before ticket/message **text**
   enters durable business fields. Masking uses one visible format (the same
   in every store humans read): email → `[email]`; phone →
-  `+7 (***) ***-**-NN` (last two digits kept); card →
+  `+** *** ** ** NN` (last two digits kept); card →
   `****-****-****-****`. It is not reversible encrypt/decrypt.
   Required detection covers email addresses, phone-like values, and
   payment-card candidates that pass a Luhn check. GreenMail
