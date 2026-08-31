@@ -26,8 +26,8 @@ and are unused here.
 ## Status
 
 **Phase 6** is done: `dify/apps/email_helpdesk.yml` includes Knowledge
-Retrieval against `employee-helpdesk` (local `ibm/granite-embedding:30m`;
-answer/categorizer still stubs). Canonical Markdown is in
+Retrieval against `employee-helpdesk` (Weighted Score; answer/categorizer
+still stubs). Canonical Markdown is in
 [`knowledge_base/`](knowledge_base/); golden catalog and opt-in `make eval`
 are in [`tests/eval/`](tests/eval/). Merge-gate / `make test` uses **fake Dify**
 (no live Studio or paid models). **Phase 7** is current (live Yandex).
@@ -50,9 +50,11 @@ These bullets constrain the LLM slice above, not a human operator help-desk.
 - Self-host Dify on a private LAN/VPN as the AI brain. The gateway depends on
   a small blocking Service API contract, not Studio internals.
 - Use **Yandex Cloud AI Studio** as the only external model provider. Use
-  local `ibm/granite-embedding:30m` through Ollama with one Dify knowledge
-  base (`employee-helpdesk`) and persistent Weaviate. Later: LLM-as-reranker
-  (Studio FM, model TBD).
+  local embeddings through Ollama with one Dify knowledge base
+  (`employee-helpdesk`) and persistent Weaviate. The email workflow
+  Knowledge Retrieval node uses Weighted Score. Pins:
+  [docs/setup.md](docs/setup.md),
+  [`tests/eval/golden_retrieval.json`](tests/eval/golden_retrieval.json).
 - Start with GreenMail for email integration and deterministic end-to-end
   tests; use English synthetic, non-sensitive content and ignore attachments.
 - Keep transport outside Dify. Mask PII before any Dify call. Toxicity/hello

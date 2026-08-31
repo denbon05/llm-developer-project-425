@@ -23,14 +23,9 @@ tests/eval/                     # this suite
 
 ## Recorded retrieval params
 
-These values are stored once in `golden_retrieval.json` metadata:
-
-- `knowledge_base`: `employee-helpdesk`
-- `candidate_k`: 10
-- `rerank_top_k`: 3
-- `score_threshold`: 0.7
-- `embedding_model`: `ibm/granite-embedding:30m`
-- LLM-as-reranker: TBD / Phase 7; no Cohere/Jina slot
+Search settings used when scoring live in `golden_retrieval.json`
+metadata (`knowledge_base`, `candidate_k`, `score_threshold`,
+`embedding_model`). Do not duplicate those values in other docs.
 
 ## What `make test` runs
 

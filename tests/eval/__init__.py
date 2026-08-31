@@ -1,1 +1,1 @@
-"""Golden retrieval catalog and standalone bi-encoder evaluator."""
+"""Golden retrieval catalog and standalone retrieval evaluator."""

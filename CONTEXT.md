@@ -45,8 +45,7 @@ Canonical values live in `contracts.enums` (`TicketCategory`, `TicketStatus`,
 `MessageRole`). Brief meanings:
 
 - **Categories:** `bug` (malfunction), `access` (permissions/auth), `docs`
-  (guidance gap), `feature` (new capability), `other` (uncategorized /
-  fallback when the categorizer is unsure).
+  (guidance gap), `feature` (new capability).
 - **Roles:** `user` | `agent` only.
 - **Statuses:** `open` (LLM-active), `escalated` (inactivity on
   `updated_at` via scheduled HTTP; default threshold

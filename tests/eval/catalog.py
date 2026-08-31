@@ -17,7 +17,6 @@ class CatalogMetadata(TypedDict):
 
     knowledge_base: str
     candidate_k: int
-    rerank_top_k: int
     score_threshold: float
     embedding_model: str
 
@@ -42,18 +41,15 @@ def _parse_metadata(raw: object) -> CatalogMetadata:
     assert isinstance(raw, dict)
     knowledge_base = raw["knowledge_base"]
     candidate_k = raw["candidate_k"]
-    rerank_top_k = raw["rerank_top_k"]
     score_threshold = raw["score_threshold"]
     embedding_model = raw["embedding_model"]
     assert isinstance(knowledge_base, str)
     assert isinstance(candidate_k, int)
-    assert isinstance(rerank_top_k, int)
     assert isinstance(score_threshold, float)
     assert isinstance(embedding_model, str)
     return {
         "knowledge_base": knowledge_base,
         "candidate_k": candidate_k,
-        "rerank_top_k": rerank_top_k,
         "score_threshold": score_threshold,
         "embedding_model": embedding_model,
     }

@@ -12,6 +12,11 @@ dependencies:
   value:
     marketplace_plugin_unique_identifier: langgenius/ollama:1.0.0@86dd6101fbd9de94e6681782700fa98c8a785c982918e6fe0ec21d507e15ba3f
     version: null
+- current_identifier: null
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/openai_api_compatible:0.0.64@ed082da9060cdaf69127de0f39e7ba5d255d74276feed9c88b2ba5226515728c
+    version: null
 kind: app
 version: 0.7.0
 workflow:
@@ -65,72 +70,11 @@ workflow:
         iteration_id: null
         loop_id: null
         sourceType: code
-        targetType: if-else
-      id: 1787415783237-source-1787415956320-target
-      selected: false
+        targetType: knowledge-retrieval
+      id: 1787415783237-source-1788195984130-target
       source: '1787415783237'
       sourceHandle: source
-      target: '1787415956320'
-      targetHandle: target
-      type: custom
-      zIndex: 0
-    - data:
-        isInIteration: false
-        isInLoop: false
-        iteration_id: null
-        loop_id: null
-        sourceType: if-else
-        targetType: template-transform
-      id: 1787415956320-false-17874208449750-target
-      selected: false
-      source: '1787415956320'
-      sourceHandle: 'false'
-      target: '17874208449750'
-      targetHandle: target
-      type: custom
-      zIndex: 0
-    - data:
-        isInIteration: false
-        isInLoop: false
-        iteration_id: null
-        loop_id: null
-        sourceType: if-else
-        targetType: knowledge-retrieval
-      id: 1787415956320-true-1787680467851-target
-      selected: false
-      source: '1787415956320'
-      sourceHandle: 'true'
-      target: '1787680467851'
-      targetHandle: target
-      type: custom
-      zIndex: 0
-    - data:
-        isInIteration: false
-        isInLoop: false
-        iteration_id: null
-        loop_id: null
-        sourceType: template-transform
-        targetType: tool
-      id: 1787416104790-source-1787418110266-target
-      selected: false
-      source: '1787416104790'
-      sourceHandle: source
-      target: '1787418110266'
-      targetHandle: target
-      type: custom
-      zIndex: 0
-    - data:
-        isInIteration: false
-        isInLoop: false
-        iteration_id: null
-        loop_id: null
-        sourceType: code
-        targetType: tool
-      id: 1787416196302-source-1787418110266-target
-      selected: false
-      source: '1787416196302'
-      sourceHandle: source
-      target: '1787418110266'
+      target: '1788195984130'
       targetHandle: target
       type: custom
       zIndex: 0
@@ -165,150 +109,28 @@ workflow:
       type: custom
       zIndex: 0
     - data:
-        isInIteration: false
+        isInIteration: null
         isInLoop: false
         iteration_id: null
         loop_id: null
         sourceType: code
-        targetType: tool
-      id: 1787418417198-source-1787418286718-target
-      selected: false
+        targetType: variable-aggregator
+      id: 1787418417198-source-1788196953658-target
       source: '1787418417198'
       sourceHandle: source
-      target: '1787418286718'
+      target: '1788196953658'
       targetHandle: target
       type: custom
       zIndex: 0
     - data:
-        isInIteration: false
+        isInIteration: null
         isInLoop: false
         iteration_id: null
         loop_id: null
         sourceType: tool
-        targetType: variable-aggregator
-      id: 1787418649631-source-1787485694956-target
-      selected: false
-      source: '1787418649631'
-      sourceHandle: source
-      target: '1787485694956'
-      targetHandle: target
-      type: custom
-      zIndex: 0
-    - data:
-        isInIteration: false
-        isInLoop: false
-        iteration_id: null
-        loop_id: null
-        sourceType: template-transform
-        targetType: tool
-      id: 17874208449750-source-17874208944560-target
-      selected: false
-      source: '17874208449750'
-      sourceHandle: source
-      target: '17874208944560'
-      targetHandle: target
-      type: custom
-      zIndex: 0
-    - data:
-        isInIteration: false
-        isInLoop: false
-        iteration_id: null
-        loop_id: null
-        sourceType: tool
-        targetType: tool
-      id: 17874208944560-source-17874209012360-target
-      selected: false
-      source: '17874208944560'
-      sourceHandle: source
-      target: '17874209012360'
-      targetHandle: target
-      type: custom
-      zIndex: 0
-    - data:
-        isInIteration: false
-        isInLoop: false
-        iteration_id: null
-        loop_id: null
-        sourceType: tool
-        targetType: variable-aggregator
-      id: 17874209012360-source-1787485694956-target
-      selected: false
-      source: '17874209012360'
-      sourceHandle: source
-      target: '1787485694956'
-      targetHandle: target
-      type: custom
-      zIndex: 0
-    - data:
-        isInIteration: false
-        isInLoop: false
-        iteration_id: null
-        loop_id: null
-        sourceType: if-else
-        targetType: template-transform
-      id: 1787479761026-false-1787416104790-target
-      selected: false
-      source: '1787479761026'
-      sourceHandle: 'false'
-      target: '1787416104790'
-      targetHandle: target
-      type: custom
-      zIndex: 0
-    - data:
-        isInIteration: false
-        isInLoop: false
-        iteration_id: null
-        loop_id: null
-        sourceType: if-else
-        targetType: code
-      id: 1787479761026-false-1787416196302-target
-      selected: false
-      source: '1787479761026'
-      sourceHandle: 'false'
-      target: '1787416196302'
-      targetHandle: target
-      type: custom
-      zIndex: 0
-    - data:
-        isInIteration: false
-        isInLoop: false
-        iteration_id: null
-        loop_id: null
-        sourceType: if-else
-        targetType: template-transform
-      id: 1787479761026-true-1787479879565-target
-      selected: false
-      source: '1787479761026'
-      sourceHandle: 'true'
-      target: '1787479879565'
-      targetHandle: target
-      type: custom
-      zIndex: 0
-    - data:
-        isInIteration: false
-        isInLoop: false
-        iteration_id: null
-        loop_id: null
-        sourceType: template-transform
-        targetType: variable-aggregator
-      id: 1787479879565-source-1787485694956-target
-      selected: false
-      source: '1787479879565'
-      sourceHandle: source
-      target: '1787485694956'
-      targetHandle: target
-      type: custom
-      zIndex: 0
-    - data:
-        isInIteration: false
-        isInLoop: false
-        iteration_id: null
-        loop_id: null
-        sourceType: variable-aggregator
         targetType: end
-      id: 1787485694956-source-1787418710934-target
-      selected: false
-      source: '1787485694956'
+      id: 1787418649631-source-1787418710934-target
+      source: '1787418649631'
       sourceHandle: source
       target: '1787418710934'
       targetHandle: target
@@ -319,11 +141,129 @@ workflow:
         isInLoop: false
         iteration_id: null
         loop_id: null
+        sourceType: if-else
+        targetType: question-classifier
+      id: 1787479761026-false-1787939099211-target
+      selected: false
+      source: '1787479761026'
+      sourceHandle: 'false'
+      target: '1787939099211'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        iteration_id: null
+        loop_id: null
+        sourceType: if-else
+        targetType: variable-aggregator
+      id: 1787479761026-true-1788196953658-target
+      source: '1787479761026'
+      sourceHandle: 'true'
+      target: '1788196953658'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        iteration_id: null
+        loop_id: null
+        sourceType: code
+        targetType: llm
+      id: 1787680600373-source-1787934852190-target
+      selected: false
+      source: '1787680600373'
+      sourceHandle: source
+      target: '1787934852190'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        iteration_id: null
+        loop_id: null
+        sourceType: llm
+        targetType: if-else
+      id: 1787934852190-source-1787479761026-target
+      selected: false
+      source: '1787934852190'
+      sourceHandle: source
+      target: '1787479761026'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        iteration_id: null
+        loop_id: null
+        sourceType: question-classifier
+        targetType: tool
+      id: 1787939099211-1-1787418110266-target
+      selected: false
+      source: '1787939099211'
+      sourceHandle: '1'
+      target: '1787418110266'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        iteration_id: null
+        loop_id: null
+        sourceType: question-classifier
+        targetType: tool
+      id: 1787939099211-1787939328752-1787418110266-target
+      selected: false
+      source: '1787939099211'
+      sourceHandle: '1787939328752'
+      target: '1787418110266'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        iteration_id: null
+        loop_id: null
+        sourceType: question-classifier
+        targetType: tool
+      id: 1787939099211-1787939337911-1787418110266-target
+      selected: false
+      source: '1787939099211'
+      sourceHandle: '1787939337911'
+      target: '1787418110266'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        iteration_id: null
+        loop_id: null
+        sourceType: question-classifier
+        targetType: tool
+      id: 1787939099211-2-1787418110266-target
+      selected: false
+      source: '1787939099211'
+      sourceHandle: '2'
+      target: '1787418110266'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        iteration_id: null
+        loop_id: null
         sourceType: knowledge-retrieval
         targetType: code
-      id: 1787680467851-source-1787680600373-target
-      selected: false
-      source: '1787680467851'
+      id: 1788195984130-source-1787680600373-target
+      source: '1788195984130'
       sourceHandle: source
       target: '1787680600373'
       targetHandle: target
@@ -334,13 +274,12 @@ workflow:
         isInLoop: false
         iteration_id: null
         loop_id: null
-        sourceType: code
-        targetType: if-else
-      id: 1787680600373-source-1787479761026-target
-      selected: false
-      source: '1787680600373'
+        sourceType: variable-aggregator
+        targetType: tool
+      id: 1788196953658-source-1787418286718-target
+      source: '1788196953658'
       sourceHandle: source
-      target: '1787479761026'
+      target: '1787418286718'
       targetHandle: target
       type: custom
       zIndex: 0
@@ -517,102 +456,11 @@ workflow:
       height: 52
       id: '1787415783237'
       position:
-        x: 661.6057930571415
-        y: 315.7798859888118
+        x: 656.5859770670902
+        y: 427.8891097666227
       positionAbsolute:
-        x: 661.6057930571415
-        y: 315.7798859888118
-      selected: false
-      sourcePosition: right
-      targetPosition: left
-      type: custom
-      width: 242
-      zIndex: 0
-    - data:
-        cases:
-        - case_id: 'true'
-          conditions:
-          - comparison_operator: empty
-            id: 228e7659-8c10-40fe-94d4-3a8b671d933b
-            value: ''
-            varType: string
-            variable_selector:
-            - '1787415783237'
-            - ticket_id
-          id: 'true'
-          logical_operator: and
-        selected: false
-        title: IF/ELSE
-        type: if-else
-      height: 140
-      id: '1787415956320'
-      position:
-        x: 952.5467005740295
-        y: 333.3599575003908
-      positionAbsolute:
-        x: 952.5467005740295
-        y: 333.3599575003908
-      selected: false
-      sourcePosition: right
-      targetPosition: left
-      type: custom
-      width: 242
-      zIndex: 0
-    - data:
-        selected: false
-        template: 'Stub reply for: {{request_text}}'
-        title: Answer with ticket (stub)
-        type: template-transform
-        variables:
-        - value_selector:
-          - '1786730582147'
-          - request_text
-          value_type: string
-          variable: request_text
-      height: 52
-      id: '1787416104790'
-      position:
-        x: 2271.8415172670198
-        y: 357.0577814923608
-      positionAbsolute:
-        x: 2271.8415172670198
-        y: 357.0577814923608
-      selected: false
-      sourcePosition: right
-      targetPosition: left
-      type: custom
-      width: 242
-      zIndex: 0
-    - data:
-        code: "def main(subject: str, text: str) -> dict: \n    return {\"category\"\
-          : \"other\"}\n"
-        code_language: python3
-        outputs:
-          category:
-            children: null
-            type: string
-        selected: false
-        title: Categorizer (stub)
-        type: code
-        variables:
-        - value_selector:
-          - '1786730582147'
-          - subject
-          value_type: string
-          variable: subject
-        - value_selector:
-          - '1786730582147'
-          - request_text
-          value_type: string
-          variable: text
-      height: 52
-      id: '1787416196302'
-      position:
-        x: 2271.8415172670198
-        y: 265.44730755929015
-      positionAbsolute:
-        x: 2271.8415172670198
-        y: 265.44730755929015
+        x: 656.5859770670902
+        y: 427.8891097666227
       selected: false
       sourcePosition: right
       targetPosition: left
@@ -725,7 +573,7 @@ workflow:
         tool_parameters:
           category:
             type: mixed
-            value: '{{#1787416196302.category#}}'
+            value: '{{#1787939099211.class_name#}}'
           text:
             type: mixed
             value: '{{#1786730582147.request_text#}}'
@@ -736,11 +584,11 @@ workflow:
       height: 84
       id: '1787418110266'
       position:
-        x: 2598.255132537774
-        y: 307.79430968763967
+        x: 2782.8411108384944
+        y: 598.7867771913151
       positionAbsolute:
-        x: 2598.255132537774
-        y: 307.79430968763967
+        x: 2782.8411108384944
+        y: 598.7867771913151
       selected: false
       sourcePosition: right
       targetPosition: left
@@ -1002,7 +850,7 @@ workflow:
             value: '{{#1786730582147.request_text#}}'
           ticket_id:
             type: mixed
-            value: '{{#1787418417198.ticket_id#}}'
+            value: '{{#1788196953658.ticket_id.output#}}'
           tokens_in:
             type: constant
             value: null
@@ -1016,12 +864,12 @@ workflow:
       height: 84
       id: '1787418286718'
       position:
-        x: 3221.6573535390585
-        y: 282.58637927880216
+        x: 3749.523708231686
+        y: 511.1628917046146
       positionAbsolute:
-        x: 3221.6573535390585
-        y: 282.58637927880216
-      selected: false
+        x: 3749.523708231686
+        y: 511.1628917046146
+      selected: true
       sourcePosition: right
       targetPosition: left
       type: custom
@@ -1047,11 +895,11 @@ workflow:
       height: 52
       id: '1787418417198'
       position:
-        x: 2905.3975680737954
-        y: 318.946336779193
+        x: 3127.659757570393
+        y: 583.9275849488497
       positionAbsolute:
-        x: 2905.3975680737954
-        y: 318.946336779193
+        x: 3127.659757570393
+        y: 583.9275849488497
       selected: false
       sourcePosition: right
       targetPosition: left
@@ -1309,7 +1157,7 @@ workflow:
             value: agent
           text:
             type: mixed
-            value: '{{#1787416104790.output#}}'
+            value: '{{#1787934852190.text#}}'
           ticket_id:
             type: mixed
             value: '{{#1787418417198.ticket_id#}}'
@@ -1326,11 +1174,11 @@ workflow:
       height: 84
       id: '1787418649631'
       position:
-        x: 3523.6573535390585
-        y: 282.58637927880216
+        x: 4044.3706623084995
+        y: 440.60352119573486
       positionAbsolute:
-        x: 3523.6573535390585
-        y: 282.58637927880216
+        x: 4044.3706623084995
+        y: 440.60352119573486
       selected: false
       sourcePosition: right
       targetPosition: left
@@ -1340,621 +1188,33 @@ workflow:
     - data:
         outputs:
         - value_selector:
-          - '1787485694956'
+          - '1788196953658'
           - ticket_id
           - output
           value_type: object
           variable: ticket_id
         - value_selector:
-          - '1787485694956'
-          - reply_text
-          - output
-          value_type: object
+          - '1787934852190'
+          - text
+          value_type: string
           variable: reply_text
+        - value_selector:
+          - '1787680600373'
+          - source_filenames
+          value_type: array[string]
+          variable: source_filenames
         selected: false
         title: Result Output
         type: end
-      height: 114
+      height: 140
       id: '1787418710934'
       position:
-        x: 4221.395015235814
-        y: 243.4421101539541
+        x: 4390.574521890238
+        y: 354.37250756443626
       positionAbsolute:
-        x: 4221.395015235814
-        y: 243.4421101539541
-      selected: false
-      sourcePosition: right
-      targetPosition: left
-      type: custom
-      width: 242
-      zIndex: 0
-    - data:
-        desc: ''
-        isInIteration: false
-        isInLoop: false
-        selected: false
-        template: 'Stub reply for: {{request_text}}'
-        title: Answer follow-up (stub)
-        type: template-transform
-        variables:
-        - value_selector:
-          - '1786730582147'
-          - request_text
-          value_type: string
-          variable: request_text
-      height: 52
-      id: '17874208449750'
-      position:
-        x: 1271.2725695914396
-        y: 454.7977037722308
-      positionAbsolute:
-        x: 1271.2725695914396
-        y: 454.7977037722308
-      selected: false
-      sourcePosition: right
-      targetPosition: left
-      type: custom
-      width: 242
-      zIndex: 0
-    - data:
-        desc: ''
-        isInIteration: false
-        isInLoop: false
-        is_team_authorization: true
-        meta: null
-        paramSchemas:
-        - auto_generate: null
-          default: null
-          form: llm
-          human_description:
-            en_US: ''
-            ja_JP: ''
-            pt_BR: ''
-            zh_Hans: ''
-          input_schema: null
-          label:
-            en_US: user_id
-            ja_JP: user_id
-            pt_BR: user_id
-            zh_Hans: user_id
-          llm_description: ''
-          max: null
-          min: null
-          multiple: false
-          name: user_id
-          options: []
-          placeholder: null
-          precision: null
-          required: true
-          scope: null
-          template: null
-          type: string
-        - auto_generate: null
-          default: null
-          form: llm
-          human_description:
-            en_US: ''
-            ja_JP: ''
-            pt_BR: ''
-            zh_Hans: ''
-          input_schema: null
-          label:
-            en_US: ticket_id
-            ja_JP: ticket_id
-            pt_BR: ticket_id
-            zh_Hans: ticket_id
-          llm_description: ''
-          max: null
-          min: null
-          multiple: false
-          name: ticket_id
-          options: []
-          placeholder: null
-          precision: null
-          required: true
-          scope: null
-          template: null
-          type: string
-        - auto_generate: null
-          default: null
-          form: llm
-          human_description:
-            en_US: ''
-            ja_JP: ''
-            pt_BR: ''
-            zh_Hans: ''
-          input_schema: null
-          label:
-            en_US: text
-            ja_JP: text
-            pt_BR: text
-            zh_Hans: text
-          llm_description: ''
-          max: null
-          min: null
-          multiple: false
-          name: text
-          options: []
-          placeholder: null
-          precision: null
-          required: true
-          scope: null
-          template: null
-          type: string
-        - auto_generate: null
-          default: null
-          form: llm
-          human_description:
-            en_US: ''
-            ja_JP: ''
-            pt_BR: ''
-            zh_Hans: ''
-          input_schema: null
-          label:
-            en_US: role
-            ja_JP: role
-            pt_BR: role
-            zh_Hans: role
-          llm_description: ''
-          max: null
-          min: null
-          multiple: false
-          name: role
-          options: []
-          placeholder: null
-          precision: null
-          required: true
-          scope: null
-          template: null
-          type: string
-        - auto_generate: null
-          default: null
-          form: llm
-          human_description:
-            en_US: ''
-            ja_JP: ''
-            pt_BR: ''
-            zh_Hans: ''
-          input_schema: null
-          label:
-            en_US: model
-            ja_JP: model
-            pt_BR: model
-            zh_Hans: model
-          llm_description: ''
-          max: null
-          min: null
-          multiple: false
-          name: model
-          options: []
-          placeholder: null
-          precision: null
-          required: false
-          scope: null
-          template: null
-          type: string
-        - auto_generate: null
-          default: null
-          form: llm
-          human_description:
-            en_US: ''
-            ja_JP: ''
-            pt_BR: ''
-            zh_Hans: ''
-          input_schema: null
-          label:
-            en_US: tokens_in
-            ja_JP: tokens_in
-            pt_BR: tokens_in
-            zh_Hans: tokens_in
-          llm_description: ''
-          max: null
-          min: null
-          multiple: false
-          name: tokens_in
-          options: []
-          placeholder: null
-          precision: null
-          required: false
-          scope: null
-          template: null
-          type: number
-        - auto_generate: null
-          default: null
-          form: llm
-          human_description:
-            en_US: ''
-            ja_JP: ''
-            pt_BR: ''
-            zh_Hans: ''
-          input_schema: null
-          label:
-            en_US: tokens_out
-            ja_JP: tokens_out
-            pt_BR: tokens_out
-            zh_Hans: tokens_out
-          llm_description: ''
-          max: null
-          min: null
-          multiple: false
-          name: tokens_out
-          options: []
-          placeholder: null
-          precision: null
-          required: false
-          scope: null
-          template: null
-          type: number
-        - auto_generate: null
-          default: null
-          form: llm
-          human_description:
-            en_US: ''
-            ja_JP: ''
-            pt_BR: ''
-            zh_Hans: ''
-          input_schema: null
-          label:
-            en_US: latency_ms
-            ja_JP: latency_ms
-            pt_BR: latency_ms
-            zh_Hans: latency_ms
-          llm_description: ''
-          max: null
-          min: null
-          multiple: false
-          name: latency_ms
-          options: []
-          placeholder: null
-          precision: null
-          required: false
-          scope: null
-          template: null
-          type: number
-        params:
-          latency_ms: ''
-          model: ''
-          role: ''
-          text: ''
-          ticket_id: ''
-          tokens_in: ''
-          tokens_out: ''
-          user_id: ''
-        plugin_id: ''
-        plugin_unique_identifier: ''
-        provider_icon:
-          background: '#E4FBCC'
-          content: 🎫
-        provider_icon_dark: null
-        provider_id: ticketing
-        provider_name: ticketing
-        provider_show_name: ticketing
-        provider_type: mcp
-        selected: false
-        title: append-user-message
-        tool_configurations: {}
-        tool_description: Insert one message (``role`` user/agent) on an existing
-          ticket.
-        tool_label: append-message
-        tool_name: append-message
-        tool_node_version: '2'
-        tool_parameters:
-          latency_ms:
-            type: constant
-            value: null
-          model:
-            type: mixed
-            value: null
-          role:
-            type: mixed
-            value: user
-          text:
-            type: mixed
-            value: '{{#1786730582147.request_text#}}'
-          ticket_id:
-            type: mixed
-            value: '{{#1787415783237.ticket_id#}}'
-          tokens_in:
-            type: constant
-            value: null
-          tokens_out:
-            type: constant
-            value: null
-          user_id:
-            type: mixed
-            value: '{{#1786730582147.user_email#}}'
-        type: tool
-      height: 84
-      id: '17874208944560'
-      position:
-        x: 1624.1411813249922
-        y: 470.57473943362487
-      positionAbsolute:
-        x: 1624.1411813249922
-        y: 470.57473943362487
-      selected: false
-      sourcePosition: right
-      targetPosition: left
-      type: custom
-      width: 242
-      zIndex: 0
-    - data:
-        desc: ''
-        isInIteration: false
-        isInLoop: false
-        is_team_authorization: true
-        meta: null
-        paramSchemas:
-        - auto_generate: null
-          default: null
-          form: llm
-          human_description:
-            en_US: ''
-            ja_JP: ''
-            pt_BR: ''
-            zh_Hans: ''
-          input_schema: null
-          label:
-            en_US: user_id
-            ja_JP: user_id
-            pt_BR: user_id
-            zh_Hans: user_id
-          llm_description: ''
-          max: null
-          min: null
-          multiple: false
-          name: user_id
-          options: []
-          placeholder: null
-          precision: null
-          required: true
-          scope: null
-          template: null
-          type: string
-        - auto_generate: null
-          default: null
-          form: llm
-          human_description:
-            en_US: ''
-            ja_JP: ''
-            pt_BR: ''
-            zh_Hans: ''
-          input_schema: null
-          label:
-            en_US: ticket_id
-            ja_JP: ticket_id
-            pt_BR: ticket_id
-            zh_Hans: ticket_id
-          llm_description: ''
-          max: null
-          min: null
-          multiple: false
-          name: ticket_id
-          options: []
-          placeholder: null
-          precision: null
-          required: true
-          scope: null
-          template: null
-          type: string
-        - auto_generate: null
-          default: null
-          form: llm
-          human_description:
-            en_US: ''
-            ja_JP: ''
-            pt_BR: ''
-            zh_Hans: ''
-          input_schema: null
-          label:
-            en_US: text
-            ja_JP: text
-            pt_BR: text
-            zh_Hans: text
-          llm_description: ''
-          max: null
-          min: null
-          multiple: false
-          name: text
-          options: []
-          placeholder: null
-          precision: null
-          required: true
-          scope: null
-          template: null
-          type: string
-        - auto_generate: null
-          default: null
-          form: llm
-          human_description:
-            en_US: ''
-            ja_JP: ''
-            pt_BR: ''
-            zh_Hans: ''
-          input_schema: null
-          label:
-            en_US: role
-            ja_JP: role
-            pt_BR: role
-            zh_Hans: role
-          llm_description: ''
-          max: null
-          min: null
-          multiple: false
-          name: role
-          options: []
-          placeholder: null
-          precision: null
-          required: true
-          scope: null
-          template: null
-          type: string
-        - auto_generate: null
-          default: null
-          form: llm
-          human_description:
-            en_US: ''
-            ja_JP: ''
-            pt_BR: ''
-            zh_Hans: ''
-          input_schema: null
-          label:
-            en_US: model
-            ja_JP: model
-            pt_BR: model
-            zh_Hans: model
-          llm_description: ''
-          max: null
-          min: null
-          multiple: false
-          name: model
-          options: []
-          placeholder: null
-          precision: null
-          required: false
-          scope: null
-          template: null
-          type: string
-        - auto_generate: null
-          default: null
-          form: llm
-          human_description:
-            en_US: ''
-            ja_JP: ''
-            pt_BR: ''
-            zh_Hans: ''
-          input_schema: null
-          label:
-            en_US: tokens_in
-            ja_JP: tokens_in
-            pt_BR: tokens_in
-            zh_Hans: tokens_in
-          llm_description: ''
-          max: null
-          min: null
-          multiple: false
-          name: tokens_in
-          options: []
-          placeholder: null
-          precision: null
-          required: false
-          scope: null
-          template: null
-          type: number
-        - auto_generate: null
-          default: null
-          form: llm
-          human_description:
-            en_US: ''
-            ja_JP: ''
-            pt_BR: ''
-            zh_Hans: ''
-          input_schema: null
-          label:
-            en_US: tokens_out
-            ja_JP: tokens_out
-            pt_BR: tokens_out
-            zh_Hans: tokens_out
-          llm_description: ''
-          max: null
-          min: null
-          multiple: false
-          name: tokens_out
-          options: []
-          placeholder: null
-          precision: null
-          required: false
-          scope: null
-          template: null
-          type: number
-        - auto_generate: null
-          default: null
-          form: llm
-          human_description:
-            en_US: ''
-            ja_JP: ''
-            pt_BR: ''
-            zh_Hans: ''
-          input_schema: null
-          label:
-            en_US: latency_ms
-            ja_JP: latency_ms
-            pt_BR: latency_ms
-            zh_Hans: latency_ms
-          llm_description: ''
-          max: null
-          min: null
-          multiple: false
-          name: latency_ms
-          options: []
-          placeholder: null
-          precision: null
-          required: false
-          scope: null
-          template: null
-          type: number
-        params:
-          latency_ms: ''
-          model: ''
-          role: ''
-          text: ''
-          ticket_id: ''
-          tokens_in: ''
-          tokens_out: ''
-          user_id: ''
-        plugin_id: ''
-        plugin_unique_identifier: ''
-        provider_icon:
-          background: '#E4FBCC'
-          content: 🎫
-        provider_icon_dark: null
-        provider_id: ticketing
-        provider_name: ticketing
-        provider_show_name: ticketing
-        provider_type: mcp
-        selected: false
-        title: append-agent-message
-        tool_configurations: {}
-        tool_description: Insert one message (``role`` user/agent) on an existing
-          ticket.
-        tool_label: append-message
-        tool_name: append-message
-        tool_node_version: '2'
-        tool_parameters:
-          latency_ms:
-            type: constant
-            value: null
-          model:
-            type: mixed
-            value: null
-          role:
-            type: mixed
-            value: agent
-          text:
-            type: mixed
-            value: '{{#17874208449750.output#}}'
-          ticket_id:
-            type: mixed
-            value: '{{#1787415783237.ticket_id#}}'
-          tokens_in:
-            type: constant
-            value: null
-          tokens_out:
-            type: constant
-            value: null
-          user_id:
-            type: mixed
-            value: '{{#1786730582147.user_email#}}'
-        type: tool
-      height: 84
-      id: '17874209012360'
-      position:
-        x: 1952.8425428193195
-        y: 470.57473943362487
-      positionAbsolute:
-        x: 1952.8425428193195
-        y: 470.57473943362487
-      selected: false
+        x: 4390.574521890238
+        y: 354.37250756443626
+      selected: true
       sourcePosition: right
       targetPosition: left
       type: custom
@@ -1964,26 +1224,38 @@ workflow:
         cases:
         - case_id: 'true'
           conditions:
+          - comparison_operator: not empty
+            id: 8ceb9b45-4c9f-42cd-8b11-07c7fa8b2e72
+            value: ''
+            varType: string
+            variable_selector:
+            - '1787415783237'
+            - ticket_id
+          id: 'true'
+          logical_operator: and
+        - case_id: c87359f3-617c-463c-b3bb-c0e072fe1457
+          conditions:
           - comparison_operator: is
-            id: 5f442450-a58d-4be9-ba25-e9407b60575f
-            value: false
+            id: 630f2b1d-5d0a-48ae-90e5-32558937d9f2
+            value: true
             varType: boolean
             variable_selector:
             - '1787680600373'
             - has_kb_hits
-          id: 'true'
+          id: c87359f3-617c-463c-b3bb-c0e072fe1457
           logical_operator: and
+        desc: follow-up/answer/ticket
         selected: false
-        title: If KB hit
+        title: if/else
         type: if-else
-      height: 148
+      height: 240
       id: '1787479761026'
       position:
-        x: 1939.8417059901972
-        y: 199.5085212836253
+        x: 2135.854851247692
+        y: 157.64328951412097
       positionAbsolute:
-        x: 1939.8417059901972
-        y: 199.5085212836253
+        x: 2135.854851247692
+        y: 157.64328951412097
       selected: false
       sourcePosition: right
       targetPosition: left
@@ -1991,24 +1263,90 @@ workflow:
       width: 242
       zIndex: 0
     - data:
+        code: "def main(items: list[dict]):\n    hits = []\n    source_filenames =\
+          \ set()\n    for item in items:\n        hits.append({\"content\": item.get(\"\
+          content\")})\n        name = item.get(\"title\", \"\")\n        if name:\n\
+          \            source_filenames.add(name)\n    return {\n        \"has_kb_hits\"\
+          : len(hits) > 0,\n        \"hits\": hits,\n        \"source_filenames\"\
+          : list(source_filenames),\n    }"
+        code_language: python3
+        outputs:
+          has_kb_hits:
+            children: null
+            type: boolean
+          hits:
+            children: null
+            type: string
+          source_filenames:
+            children: null
+            type: string
         selected: false
-        template: Some reply to {{ request_text }}
-        title: Answer only (stub)
-        type: template-transform
+        title: Prepare sources
+        type: code
         variables:
         - value_selector:
-          - '1786730582147'
-          - request_text
-          value_type: string
-          variable: request_text
+          - '1788195984130'
+          - result
+          value_type: array[object]
+          variable: items
       height: 52
-      id: '1787479879565'
+      id: '1787680600373'
       position:
-        x: 2271.8415172670198
-        y: 169.80824346413863
+        x: 1374.5481509060337
+        y: 411.9544337896078
       positionAbsolute:
-        x: 2271.8415172670198
-        y: 169.80824346413863
+        x: 1374.5481509060337
+        y: 411.9544337896078
+      selected: true
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        context:
+          enabled: true
+          variable_selector:
+          - '1787680600373'
+          - hits
+        isInIteration: null
+        isInLoop: null
+        iteration_id: null
+        loop_id: null
+        model:
+          completion_params:
+            temperature: 0.2
+          mode: chat
+          name: dify-yandex
+          provider: langgenius/openai_api_compatible/openai_api_compatible
+        prompt_template:
+        - id: 66d2ebf1-dec6-4aa0-b57c-f5ad1ae9c76f
+          role: system
+          text: 'You answer to user from the info provided only. If you don''t know
+            the answer, you answer "I don''t know".
+
+            Info:
+
+            {{#context#}}'
+        - id: fcc6d72d-9c52-406d-ade0-36a1cf66bf23
+          role: user
+          text: 'User request:
+
+            {{#1786730582147.request_text#}}'
+        selected: false
+        structured_output_enabled: false
+        title: LLM help user
+        type: llm
+        vision:
+          enabled: false
+      height: 88
+      id: '1787934852190'
+      position:
+        x: 1814.1557869927694
+        y: 289.1056382117846
+      positionAbsolute:
+        x: 1814.1557869927694
+        y: 289.1056382117846
       selected: false
       sourcePosition: right
       targetPosition: left
@@ -2016,41 +1354,51 @@ workflow:
       width: 242
       zIndex: 0
     - data:
-        advanced_settings:
-          group_enabled: true
-          groups:
-          - groupId: 78f5a931-f388-409e-b233-c5ddca707677
-            group_name: reply_text
-            output_type: string
-            variables:
-            - - '1787416104790'
-              - output
-            - - '17874208449750'
-              - output
-            - - '1787479879565'
-              - output
-          - groupId: dacca6d6-94cc-4eb3-b191-a63bc16d2958
-            group_name: ticket_id
-            output_type: string
-            variables:
-            - - '1787418417198'
-              - ticket_id
-            - - '1787415783237'
-              - ticket_id
-        output_type: any
+        classes:
+        - id: '1'
+          label: bug
+          name: The user is reporting an error, crash, technical issue, unintended
+            behavior, or a broken element in the system.
+        - id: '2'
+          label: docs
+          name: The user is asking for explanations, manuals, tutorials, API specifications,
+            or how-to guides about the platform.
+        - id: '1787939328752'
+          label: feature
+          name: The user is requesting a new capability, enhancement, suggestion,
+            or asking if the system supports a brand-new type of functionality.
+        - id: '1787939337911'
+          label: access
+          name: The user is having issues with logging in, password resets, API keys,
+            credentials, authorization, permissions, or license keys.
+        instruction: Classify the user input into exactly one of the provided categories.
+        isInIteration: null
+        isInLoop: null
+        iteration_id: null
+        loop_id: null
+        model:
+          completion_params:
+            temperature: 0.6
+          mode: chat
+          name: dify-yandex
+          provider: langgenius/openai_api_compatible/openai_api_compatible
+        query_variable_selector:
+        - '1786730582147'
+        - request_text
         selected: false
-        title: Variable Aggregator
-        type: variable-aggregator
-        variables: []
-      height: 242
-      id: '1787485694956'
+        title: Question Classifier
+        type: question-classifier
+        vision:
+          enabled: false
+      height: 304
+      id: '1787939099211'
       position:
-        x: 3893.951055622833
-        y: 177.0512324029277
+        x: 2436.3169937881144
+        y: 390.76811780304405
       positionAbsolute:
-        x: 3893.951055622833
-        y: 177.0512324029277
-      selected: false
+        x: 2436.3169937881144
+        y: 390.76811780304405
+      selected: true
       sourcePosition: right
       targetPosition: left
       type: custom
@@ -2059,10 +1407,6 @@ workflow:
     - data:
         dataset_ids:
         - /2HS0krFIZ8dbzGZlwE09GaM6NzR4jTe0P5WC83foT8ySuI2Fi+HQzdjGjOnBxEw
-        isInIteration: null
-        isInLoop: null
-        iteration_id: null
-        loop_id: null
         multiple_retrieval_config:
           reranking_enable: false
           reranking_mode: weighted_score
@@ -2081,17 +1425,17 @@ workflow:
         - '1786730582147'
         - request_text
         retrieval_mode: multiple
-        selected: true
+        selected: false
         title: Knowledge Retrieval
         type: knowledge-retrieval
       height: 52
-      id: '1787680467851'
+      id: '1788195984130'
       position:
-        x: 1271.2725695914396
-        y: 309.90848372295875
+        x: 1028.9277708648362
+        y: 326.56244037916144
       positionAbsolute:
-        x: 1271.2725695914396
-        y: 309.90848372295875
+        x: 1028.9277708648362
+        y: 326.56244037916144
       selected: false
       sourcePosition: right
       targetPosition: left
@@ -2099,43 +1443,37 @@ workflow:
       width: 242
       zIndex: 0
     - data:
-        code: "\ndef main(items: list[dict]):\n    has_kb_hits = len(items) > 0\n\
-          \    hits = [\n        {key: item.get(key, None) for key in ('content',\
-          \ 'title')}\n        for item in items\n    ]\n\n    return {\n        \"\
-          has_kb_hits\": has_kb_hits,\n        \"hits\": hits,\n    }\n"
-        code_language: python3
-        outputs:
-          has_kb_hits:
-            children: null
-            type: boolean
-          hits:
-            children: null
-            type: array[object]
+        advanced_settings:
+          group_enabled: true
+          groups:
+          - groupId: dc5fef12-6f55-4a19-99c3-3d4e196f239d
+            group_name: ticket_id
+            output_type: string
+            variables:
+            - - '1787415783237'
+              - ticket_id
+            - - '1787418417198'
+              - ticket_id
+        output_type: any
         selected: false
-        title: Extract hits
-        type: code
-        variables:
-        - value_selector:
-          - '1787680467851'
-          - result
-          value_type: array[object]
-          variable: items
-      height: 52
-      id: '1787680600373'
+        title: Ticket ID aggregator
+        type: variable-aggregator
+        variables: []
+      height: 135
+      id: '1788196953658'
       position:
-        x: 1618.5025342531803
-        y: 243.4421101539541
+        x: 3430.8076548814515
+        y: 455.01473165391013
       positionAbsolute:
-        x: 1618.5025342531803
-        y: 243.4421101539541
+        x: 3430.8076548814515
+        y: 455.01473165391013
       selected: false
       sourcePosition: right
       targetPosition: left
       type: custom
       width: 242
-      zIndex: 0
     viewport:
-      x: -778.9447773355192
-      y: 37.24161001129438
-      zoom: 0.7966569747648773
+      x: -2163.8969567142985
+      y: 28.28738021847971
+      zoom: 0.752534990989318
   rag_pipeline_variables: []

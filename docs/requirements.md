@@ -48,7 +48,7 @@ ticket exists.
   | State | KB can answer | DB |
   | --- | --- | --- |
   | No non-`closed` ticket | yes | **no** ticket, **no** `messages` — email only + citations |
-  | No non-`closed` ticket | no | `create-ticket` (`tickets.text` only) **and** `append-message` user (inbound mail) **then** `append-message` agent (reply). Uncategorized → `other`. |
+  | No non-`closed` ticket | no | `create-ticket` (`tickets.text` only) **and** `append-message` user (inbound mail) **then** `append-message` agent (reply). |
   | Non-`closed` ticket already exists (`open` **or** `escalated`) | yes or no | **always** append user + agent; **still run KB** |
 
   On a knowledge gap (row 2), `reply_text` admits the miss; End `ticket_id`
@@ -58,22 +58,23 @@ ticket exists.
   ticket exists, persist messages even if KB could answer. The
   ticket must exist and `ticket.user_id` must match `user_id` or append is
   `NOT_FOUND`. Append inserts a message and bumps `tickets.updated_at`; it
-  does not change ticket text or status. Agent rows may include usage. A
-  legitimate request without a specific category uses `other` (fallback
-  when the categorizer is unsure). Escalate is option A (no human):
+  does not change ticket text or status. Agent rows may include usage.
+  On the knowledge-gap path the categorizer runs sequentially (after the
+  answer LLM, before `create-ticket`) and emits one `TicketCategory`.
+  Unknown category strings are `NOT_ELIGIBLE`. Skip the categorizer on
+  KB-hit and follow-up paths. Escalate is option A (no human):
   `POST /v1/tickets/escalate-stale` still flips idle `open` → `escalated`
   (status-only). Later employee mail still uses the non-closed path above.
   `append-message` does not change status (ticket stays `escalated`). Do
   not reopen. There is no operator UI; the human/operator path remains
   out of scope. Dify does not own escalate rules.
 - **FR-4 — Knowledge and citations.** v1 uses one Dify knowledge base
-  (`employee-helpdesk`), persistent bundled Weaviate, and local
-  `ibm/granite-embedding:30m` (bi-encoder) through an internal
-  resource-limited Ollama container. Then an **LLM-as-reranker** (small
-  Yandex Cloud AI Studio FM, model TBD — not a true cross-encoder; do not
-  use a Cohere/Jina rerank slot). Configurable defaults: `candidate_k=10`
-  → rerank → `rerank_top_k=3` if score ≥ `0.7`. Corpus: eight concise
-  synthetic English documents in `knowledge_base/`. Canonical knowledge is
+  (`employee-helpdesk`), persistent bundled Weaviate, and local embeddings
+  through an internal resource-limited Ollama container. The email
+  workflow Knowledge Retrieval node uses Weighted Score. Recorded search
+  settings live in `tests/eval/golden_retrieval.json`. Corpus: eight
+  concise synthetic English documents in `knowledge_base/`. Canonical
+  knowledge is
   versioned in Git. End `source_filenames` are `knowledge_base/` filenames
   from retrieval, never model-generated URLs. The gateway builds
   `{CITATION_URL_BASE}{filename}` and appends a `Sources:` footer to the
@@ -129,8 +130,9 @@ ticket exists.
   1. `email_helpdesk` — User Input start; gateway blocking Service API
      `POST …/v1/workflows/run`. Committed export
      `dify/apps/email_helpdesk.yml` is the architecture graph with
-     Knowledge Retrieval (local embeddings) and Code/Template stubs for
-     answer and categorizer (not a Start→End echo).
+     Knowledge Retrieval (Weighted Score, local embeddings) and
+     Code/Template stubs for answer and categorizer (not a Start→End
+     echo).
   2. Escalate — Schedule Trigger (daily / 24h; hourly allowed for demo)
      that **only** HTTP-calls `POST /v1/tickets/escalate-stale`, with a
      retry policy (counts TBD). No escalate logic in Dify. User Input vs
@@ -226,9 +228,9 @@ ticket exists.
 3. A legitimate request below the evidence threshold, with no non-`closed`
    ticket, creates exactly one ticket **and** a first user `messages` row,
    then an agent row for the reply. `reply_text` admits the knowledge gap;
-   the SMTP body includes the new ticket id. An uncategorized request is
-   stored as `other` (fallback when the categorizer is unsure). Categorizer
-   runs only on this knowledge-gap path.
+   the SMTP body includes the new ticket id. Categorizer runs only on
+   this knowledge-gap path (sequential: classify, then create, then
+   appends).
 4. Toxicity/hello matches in the **gateway** produce a static SMTP body.
    Dify is **not** called. No ticket. Injection (including “ignore previous
    instructions” in the request body) and non-helpdesk input produce a
@@ -308,17 +310,15 @@ ticket exists.
 - attachment processing, multilingual behavior, and real or sensitive data
 - broader NLP-based PII discovery beyond the required deterministic types
 - linked historical tickets after a closed-thread reply
-- Cohere/Jina (or other marketplace) rerank slots; true cross-encoders.
-  LLM-as-reranker (Yandex Studio FM) is in-scope but model TBD
 - input-size / per-sender rate limits as a current gate (deferred)
 - Ansible or other infrastructure orchestration beyond minimal Compose/Make
 
 ## Provisional parameters
 
-Toxicity word-list contents, LLM-rerank model id, escalation intervals,
-and escalate HTTP retry counts will be calibrated at their phase gates. Recorded retrieval defaults:
-`candidate_k=10`, `rerank_top_k=3`, score ≥ `0.7` (LLM-rerank remains TBD
-until Phase 7). Until then, the required outcomes above are normative:
+Toxicity word-list contents, escalation intervals, and escalate HTTP
+retry counts will be calibrated at their phase gates. Recorded retrieval
+defaults live in `tests/eval/golden_retrieval.json`. Until then, the
+required outcomes above are normative:
 KB hit with no non-`closed` ticket → email only (no ticket, no `messages`);
 knowledge gap with no non-`closed` ticket → `create-ticket` plus first-user
 `append-message` then agent append; non-`closed` ticket → always append

@@ -61,7 +61,7 @@ Pins, ports, and GreenMail accounts are in the tables below.
    `dify/.env.example`), recreate `ssrf_proxy` and `plugin_daemon`.
 
 6. **Workflow app.** On a fresh Studio, **Create** → **Import DSL** →
-   `dify/apps/email_helpdesk.yml` (Knowledge Retrieval, MCP tool nodes,
+   `dify/apps/email_helpdesk.yml` (Knowledge Retrieval Weighted Score, MCP tool nodes,
    IF/ELSE, Code/Template stubs for answer/categorizer, one Variable
    Aggregator, End `reply_text` / `ticket_id`). See
    [dify/apps/README.md](../dify/apps/README.md).
@@ -83,8 +83,7 @@ Pins, ports, and GreenMail accounts are in the tables below.
      a container and must use the Compose hostname, not `localhost`.
    - Context size: **512** (this model's window). Leave the default
      and chunks get truncated or score badly.
-   Do not add OpenAI, Cohere, or Jina. Do not add a Cohere/Jina rerank
-   provider (LLM-as-reranker is Phase 7).
+   Do not add OpenAI, Cohere, or Jina.
 
 10. **Knowledge dataset (Studio, one-time).** **Knowledge → Create →
     Create a ready-to-use knowledge base.** Name it `employee-helpdesk`.
@@ -100,16 +99,21 @@ Pins, ports, and GreenMail accounts are in the tables below.
 
     **Index:** High Quality, embedding model from step 9.
 
-    **Retrieval Setting:** **vector search** (the local bi-encoder only).
+    **Retrieval Setting:** **vector search** (the local embedding model).
     Do not use full-text or hybrid here — hybrid mixes keyword search
     and is Dify's UI recommendation, but this slice measures embeddings.
-    Top K **10**, score threshold **0.7**, no rerank model. Skip
+    Top K and score threshold must match
+    [`tests/eval/golden_retrieval.json`](../tests/eval/golden_retrieval.json).
+    Skip
     **Convert to Knowledge Pipeline** (a different ingest graph; the
     ready-to-use dataset is enough).
 
     Wait until documents are indexed. Then in `email_helpdesk` open the
     **Knowledge Retrieval** node (already in the imported DSL) and
-    select dataset `employee-helpdesk`. Exported `dataset_ids` are
+    select dataset `employee-helpdesk`. Set the node to **Weighted
+    Score** with vector-only weights (keyword weight 0). Top K, score
+    threshold, and embedding model must match the eval catalog.
+    Exported `dataset_ids` are
     instance-local; a fresh Studio must rebind. Query stays Start
     `request_text`. Keep IF/ELSE and MCP. The **Prepare sources** Code node
     maps retrieval `title` (imported filename) to End `source_filenames` and
@@ -141,8 +145,8 @@ Pins, ports, and GreenMail accounts are in the tables below.
     The evaluator loads these values with Pydantic Settings, lists
     accessible knowledge bases, and requires exactly one with the exact
     name `employee-helpdesk`. It then calls Dify's retrieval endpoint
-    for every golden query with semantic search, Top K 10, threshold
-    0.7, and no reranker. Each expected filename must own the
+    for every golden query with the same Weighted Score settings as the
+    Knowledge Retrieval node. Each expected filename must own the
     first-ranked indexed chunk. This check uses Dify, Weaviate, and
     local Ollama, but no Yandex or paid model.
 

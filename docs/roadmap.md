@@ -52,8 +52,8 @@ intelligence). `list-my-tickets` already matches the Studio-binding contract
   status-only. No outbox/quarantine tables. No email gateway or Dify
   workflows in this phase. `create-ticket` does **not** insert a `messages`
   row (invariant kept in later phases).
-- **Verification gate:** contract tests at HTTP and MCP seams cover categories
-  (including `other`), user/agent roles, scoped list, create (`text` only),
+- **Verification gate:** contract tests at HTTP and MCP seams cover categories,
+  user/agent roles, scoped list, create (`text` only),
   append for chat history, agent append with usage on a ticket (bumps `updated_at`, not
   ticket text or status), masking, and HTTP escalate-stale (inactivity on
   `updated_at`).
@@ -109,18 +109,16 @@ intelligence). `list-my-tickets` already matches the Studio-binding contract
   the required 5–10) and golden retrieval cases, ingest one
   `employee-helpdesk` knowledge base, and preserve stable trusted repository
   source IDs/URLs to `knowledge_base/` paths. Eval suite folder layout is
-  chosen in this phase. Record `candidate_k=10` / `rerank_top_k=3` / `0.7`.
-  Bi-encoder measurement with local `ibm/granite-embedding:30m`. Yandex
-  LLM-as-reranker may still be TBD / Phase 7. No sensitive data. This agent
-  does not change application architecture.
+  chosen in this phase. Record search settings in the eval catalog.
+  Measurement with local Ollama embeddings and Knowledge Retrieval
+  Weighted Score. No sensitive data. This agent does not change
+  application architecture.
 - **Verification gate:** done. Eight synthetic English pages in
   `knowledge_base/`; Dify dataset `employee-helpdesk`; golden catalog and
-  opt-in scorer in `tests/eval/`. Recorded `candidate_k=10` /
-  `rerank_top_k=3` / `0.7`; `make test` checks the catalog and exported
-  Knowledge Retrieval settings (no Dify); `make eval` measures bi-encoder
+  opt-in scorer in `tests/eval/`. `make test` checks the catalog and
+  exported Knowledge Retrieval settings (no Dify); `make eval` measures
   retrieval against live Dify/Weaviate/Ollama and requires each expected
-  document to rank first. No Cohere/Jina rerank slot; no sensitive data.
-  Phase 7 is live Yandex / LLM-as-reranker.
+  document to rank first. No sensitive data. Phase 7 is live Yandex.
 - **Learning checkpoint:** explain why Git is canonical, Weaviate is derived,
   and retrieval quality is measured rather than assumed.
 
@@ -130,9 +128,8 @@ intelligence). `list-my-tickets` already matches the Studio-binding contract
 - **Scope:** injection/scope (prompt-injection does not create tickets);
   knowledge-gap reply admits the miss, creates a ticket, SMTP includes the
   new `ticket_id`; no read-back of `messages`; SEC-2 mask format; live
-  Yandex generator; LLM-as-reranker (Studio FM, model TBD); categorizer
-  SML; grounded citations; token accounting. Toxicity/hello stay gateway
-  regex (Phase 4).
+  Yandex generator; categorizer SML; grounded citations; token
+  accounting. Toxicity/hello stay gateway regex (Phase 4).
 - **Verification gate:** merge-gate uses fake Dify and local dependencies.
   Live Yandex classifier/generator, usage matching, and full Dify/Yandex
   behavior are opt-in smoke/evaluation checks.

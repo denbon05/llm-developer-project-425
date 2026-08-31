@@ -201,8 +201,6 @@ def validate_workflow_config(metadata: catalog.CatalogMetadata) -> None:
             mismatches.append(
                 f"{field}={config[field]!r}, expected {metadata[field]!r}"
             )
-    if config["is_reranking_enabled"]:
-        mismatches.append("reranking is enabled, expected disabled")
     if mismatches:
         raise EvalError("workflow retrieval mismatch: " + "; ".join(mismatches))
 

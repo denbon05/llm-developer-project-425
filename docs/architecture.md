@@ -34,19 +34,17 @@ human/operator path remains out of scope.
     this topology with Knowledge Retrieval plus Code/Template stubs for
     answer and categorizer — not a Start→End echo. Phase 7 is live
     Yandex):
-    (1) `list-my-tickets` tool node early; (2) retrieve: local bi-encoder
-    then LLM-as-reranker (small Yandex FM, model TBD — not a true
-    cross-encoder; no Cohere/Jina rerank slot) then a dedicated answer
-    LLM; (3) IF a non-`closed` ticket: answer LLM → append user → append
+    (1) `list-my-tickets` tool node early; (2) retrieve: Knowledge
+    Retrieval with Weighted Score (local Ollama embeddings) then a
+    dedicated answer LLM; (3) IF a non-`closed` ticket: answer LLM → append user → append
     agent (sequential appends); (4) ELSE IF KB hit: answer LLM → End, no
-    MCP create/append; (5) ELSE knowledge gap: answer LLM admits the miss
-    **in parallel with** a categorizer SML on `request_text` → join →
-    `create-ticket` (needs category + text) → append user → append agent.
-    Categorizer need not wait for the answer; skip it on KB-hit and
-    follow-up paths. `other` is fallback when the SML is unsure.
-    `create-ticket` must not run in parallel with append (needs
-    `ticket_id`). Injection/scope (Phase 7): static block, no
-    `create-ticket`. Toxicity/hello stay gateway regex.
+    MCP create/append; (5) ELSE knowledge gap: answer LLM admits the miss;
+    then a sequential categorizer SML on `request_text` → `create-ticket`
+    (needs category + text) → append user → append agent. Skip the
+    categorizer on KB-hit and follow-up paths. `create-ticket` must not
+    run in parallel with append (needs `ticket_id`). Injection/scope
+    (Phase 7): static block, no `create-ticket`. Toxicity/hello stay
+    gateway regex.
   - Escalate — Schedule Trigger (daily / 24h; hourly allowed for demo)
     that **only** HTTP-calls `POST /v1/tickets/escalate-stale`, with a
     retry policy (counts TBD). No escalate rules in Dify.
@@ -65,13 +63,12 @@ human/operator path remains out of scope.
   reversible encrypt/decrypt.
 - **Knowledge module** — treats versioned Markdown in Git (`knowledge_base/`)
   as canonical, produces trusted source metadata, and reproducibly ingests
-  one Dify knowledge base named `employee-helpdesk`. Retrieval uses local
-  bi-encoder `ibm/granite-embedding:30m` via Ollama (vector search;
-  recorded `candidate_k=10`, score ≥ `0.7`). LLM-as-reranker (small Yandex
-  Cloud AI Studio FM, model TBD) is Phase 7; no Cohere/Jina rerank slot.
-  Recorded `rerank_top_k=3` waits for that step. End `source_filenames`
-  are `knowledge_base/` filenames from retrieval; the gateway builds Git
-  URLs under a configured URL prefix.
+  one Dify knowledge base named `employee-helpdesk`. The email workflow
+  Knowledge Retrieval node uses Weighted Score with local embeddings via
+  Ollama. Recorded search settings live in
+  [`tests/eval/golden_retrieval.json`](../tests/eval/golden_retrieval.json).
+  End `source_filenames` are `knowledge_base/` filenames from retrieval;
+  the gateway builds Git URLs under a configured URL prefix.
 - **Lifecycle schedule** — the Escalate Dify app calls private HTTP
   `POST /v1/tickets/escalate-stale` (retry policy, counts TBD). Ticketing
   selects `open` rows whose `updated_at` is older than the inactivity
@@ -169,10 +166,11 @@ project joins it as external (start Dify first). `plugin_daemon` and
 `SSRF_PROXY_ALLOW_PRIVATE_DOMAINS` is `ticketing` only. The root `Makefile` wraps
 both with foreground `make dify-stack-up` / `make app-stack-up` (two
 terminals). Secret-free Dify App DSL exports live under `dify/apps/` —
-`email_helpdesk.yml` is the graph above with Knowledge Retrieval (local
-embeddings) and Code/Template stubs for answer and categorizer (MCP tool
-nodes, IF/ELSE, one Variable Aggregator, End `reply_text` / `ticket_id` /
-`source_filenames`). The Escalate app is Phase 8.
+`email_helpdesk.yml` is the graph above with Knowledge Retrieval
+(Weighted Score, local embeddings) and Code/Template stubs for answer
+and categorizer (MCP tool nodes, IF/ELSE, one Variable Aggregator, End
+`reply_text` / `ticket_id` / `source_filenames`). The Escalate app is
+Phase 8.
 
 ## Minimal Dify contract
 
@@ -257,9 +255,9 @@ then may set `\Seen`.
    | No non-`closed` ticket | no | `create-ticket` **and** `append-message` user then agent; `reply_text` admits the miss; SMTP includes the new `ticket_id` |
    | Non-`closed` ticket already exists (`open` **or** `escalated`) | yes or no | **always** append user + agent; **still run KB** |
 
-   Uncategorized legitimate work uses `other` (fallback). Employee cannot
-   override a KB hit into a new ticket. Skip the categorizer on KB-hit and
-   follow-up paths. `create-ticket` must not run in parallel with append.
+   Employee cannot override a KB hit into a new ticket. Categorizer runs
+   only on the knowledge-gap path, sequentially before `create-ticket`.
+   `create-ticket` must not run in parallel with append.
 6. The gateway validates `data.outputs` (`reply_text` required). Unusable
    outputs: log error, skip SMTP, leave UNSEEN. Usage on the blocking
    response may be passed on the agent append (Dify performs that append).
@@ -422,7 +420,7 @@ human/operator path remains out of scope.
 ├── dify/
 │   ├── compose.yml              # Dify platform stack
 │   └── apps/                    # one secret-free DSL export per Dify App
-│       └── email_helpdesk.yml   # email graph (Knowledge Retrieval; stub LLM)
+│       └── email_helpdesk.yml   # email graph (Weighted Score KR; stub LLM)
 ├── src/
 │   ├── contracts/
 │   ├── privacy/
