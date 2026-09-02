@@ -11,6 +11,13 @@ GREETING_REPLY_TEXT = "Hello. How can I help you?"
 TOXICITY_TERMS = ("idiot", "stupid", "shut up", "hate you")
 """Insults and short hostile phrases."""
 
+INJECTION_PHRASE_TERMS = (
+    "ignore previous instruction",
+    "ignore previous instructions",
+    "DROP TABLE",
+)
+"""Instruction-override and SQL phrases."""
+
 SMTP_TIMEOUT_SECONDS = 30
 """SMTP connect/login/send timeout (seconds)."""
 
@@ -28,6 +35,10 @@ FAIL_BAD_JSON = "bad_json"
 
 FAIL_OUTPUTS_INVALID = "outputs_invalid"
 """Workflow End outputs failed validation."""
+
+KNOWLEDGE_GAP_REPLY_MARKER = "I don't know"
+"""Substring that marks a knowledge-gap miss in End ``reply_text``.
+"""
 
 CITATION_SOURCES_HEADING = "Sources:"
 """Plain-text SMTP footer heading above gateway-built citation URLs."""

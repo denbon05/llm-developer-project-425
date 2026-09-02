@@ -2,7 +2,8 @@
 
 Flow: ``parse_outputs`` reads the Service API JSON, requires a non-empty
 ``reply_text``, accepts optional ``ticket_id`` and ``source_filenames``,
-then appends those onto the SMTP body.
+then appends those onto the SMTP body. Sources are omitted when
+``reply_text`` contains the knowledge-gap marker.
 """
 
 from __future__ import annotations
@@ -68,6 +69,13 @@ def _parse_source_filenames(raw: Any) -> list[str]:
     return filenames
 
 
+def is_knowledge_gap_miss(reply_text: str) -> bool:
+    """True when End ``reply_text`` contains the knowledge-gap marker."""
+    return (
+        constants.KNOWLEDGE_GAP_REPLY_MARKER.casefold() in reply_text.casefold()
+    )
+
+
 def _build_smtp_body(
     reply_text: str,
     ticket_id: str | None,
@@ -78,7 +86,7 @@ def _build_smtp_body(
     parts = [reply_text.rstrip()]
     if ticket_id is not None:
         parts.append(f"{constants.TICKET_ID_HEADING} {ticket_id}")
-    if filenames:
+    if filenames and not is_knowledge_gap_miss(reply_text):
         base = url_base.strip()
         if not base:
             raise OutputsError(_ERR_CITATION_URL_BASE_EMPTY)

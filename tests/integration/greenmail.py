@@ -146,19 +146,19 @@ def wait_for_unseen(
     raise AssertionError("timed out waiting for UNSEEN mail")
 
 
-def list_inbox_bodies(
+def list_inbox_messages(
     greenmail: GreenMailEndpoints,
     user: str,
     password: str,
-) -> list[str]:
-    """Text of every inbox message, without marking them read."""
+) -> list[Message]:
+    """Parsed inbox messages, without marking them read."""
     client = imap_login(greenmail, user, password)
     try:
         client.select(_IMAP_MAILBOX)
         # Charset omitted: ALL is ASCII (avoids imaplib charset=None stubs).
         status, data = client.uid(_IMAP_UID_SEARCH, _IMAP_CRITERION_ALL)
         uids = _parse_search_ids(status, data)
-        bodies: list[str] = []
+        messages: list[Message] = []
         for uid in uids:
             status, fetched = client.uid(
                 _IMAP_UID_FETCH,
@@ -167,11 +167,24 @@ def list_inbox_bodies(
             )
             assert status == _IMAP_STATUS_OK
             rfc822_bytes = _read_rfc822_from_fetch(fetched)
-            parsed = BytesParser(policy=default).parsebytes(rfc822_bytes)
-            bodies.append(extract_body(parsed))
-        return bodies
+            messages.append(
+                BytesParser(policy=default).parsebytes(rfc822_bytes)
+            )
+        return messages
     finally:
         client.logout()
+
+
+def list_inbox_bodies(
+    greenmail: GreenMailEndpoints,
+    user: str,
+    password: str,
+) -> list[str]:
+    """Text of every inbox message, without marking them read."""
+    return [
+        extract_body(parsed)
+        for parsed in list_inbox_messages(greenmail, user, password)
+    ]
 
 
 def list_unseen_uids(

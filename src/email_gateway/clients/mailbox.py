@@ -37,6 +37,10 @@ _IMAP_UID_ASCII = "ascii"
 _FETCH_RFC822_PEEK = "(BODY.PEEK[])"
 # RFC 5322 reply subject prefix (case-insensitive match, canonical "Re:").
 _REPLY_PREFIX = "Re:"
+# Threading headers so the client groups the SMTP reply with the inbound mail.
+_HEADER_MESSAGE_ID = "Message-ID"
+_HEADER_IN_REPLY_TO = "In-Reply-To"
+_HEADER_REFERENCES = "References"
 
 
 @dataclass(frozen=True)
@@ -47,6 +51,8 @@ class InboundMessage:
     sender: str
     subject: str
     body: str
+    message_id: str
+    references: str
 
 
 class Client:
@@ -75,6 +81,8 @@ class Client:
                         sender=sender,
                         subject=subject,
                         body=body,
+                        message_id=_header_text(parsed, _HEADER_MESSAGE_ID),
+                        references=_header_text(parsed, _HEADER_REFERENCES),
                     )
                 )
             return inbound_messages
@@ -93,7 +101,15 @@ class Client:
         finally:
             _imap_logout(client)
 
-    def send_reply(self, *, to_addr: str, subject: str, body: str) -> bool:
+    def send_reply(
+        self,
+        *,
+        to_addr: str,
+        subject: str,
+        body: str,
+        in_reply_to: str = "",
+        references: str = "",
+    ) -> bool:
         """Send a reply to ``to_addr``. Return True if the server accepted."""
         if not to_addr:
             logger.warning(
@@ -104,6 +120,11 @@ class Client:
         outgoing["From"] = self._settings.smtp_user
         outgoing["To"] = to_addr
         outgoing["Subject"] = _format_reply_subject(subject)
+        if in_reply_to:
+            outgoing[_HEADER_IN_REPLY_TO] = in_reply_to
+            outgoing[_HEADER_REFERENCES] = _format_references(
+                references, in_reply_to
+            )
         outgoing.set_content(body)
         try:
             with smtplib.SMTP(
@@ -142,6 +163,18 @@ def _format_reply_subject(subject: str) -> str:
     if stripped.lower().startswith(_REPLY_PREFIX.lower()):
         return stripped
     return f"{_REPLY_PREFIX} {stripped}" if stripped else _REPLY_PREFIX
+
+
+def _format_references(parent_references: str, parent_message_id: str) -> str:
+    """Parent References plus the inbound Message-ID (RFC 5322)."""
+    if parent_references:
+        return f"{parent_references} {parent_message_id}"
+    return parent_message_id
+
+
+def _header_text(message: Message, name: str) -> str:
+    """Single header value, or empty when the field is missing."""
+    return str(message.get(name) or "").strip()
 
 
 def _parse_local_part(user: str) -> str:

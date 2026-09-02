@@ -62,8 +62,8 @@ Pins, ports, and GreenMail accounts are in the tables below.
 
 6. **Workflow app.** On a fresh Studio, **Create** → **Import DSL** →
    `dify/apps/email_helpdesk.yml` (Knowledge Retrieval Weighted Score, MCP tool nodes,
-   IF/ELSE, Code/Template stubs for answer/categorizer, one Variable
-   Aggregator, End `reply_text` / `ticket_id`). See
+   IF/ELSE, live Yandex LLM and classifier, Ticket ID and Reply
+   aggregators, End `reply_text` / `ticket_id`). See
    [dify/apps/README.md](../dify/apps/README.md).
 
 7. **App API key.** Workflow sidebar **API Access** → Create API Key →
@@ -73,7 +73,7 @@ Pins, ports, and GreenMail accounts are in the tables below.
 
 8. **Mail.** Use a real client against GreenMail, not Dify. As
    `employee1@example.test`, send **To:** `support@example.test`. Confirm
-   `email-gateway` polls it and the employee inbox gets the stub workflow
+   `email-gateway` polls it and the employee inbox gets the workflow
    reply. Accounts: [GreenMail](#greenmail).
 
 9. **Ollama embedding provider (Studio, one-time).** Manual steps. **Integrations → Model Provider → Ollama**. Add a
@@ -83,7 +83,6 @@ Pins, ports, and GreenMail accounts are in the tables below.
      a container and must use the Compose hostname, not `localhost`.
    - Context size: **512** (this model's window). Leave the default
      and chunks get truncated or score badly.
-   Do not add OpenAI, Cohere, or Jina.
 
 10. **Knowledge dataset (Studio, one-time).** **Knowledge → Create →
     Create a ready-to-use knowledge base.** Name it `employee-helpdesk`.
@@ -210,11 +209,22 @@ not stall on “Syncing data”.
 Gateway diagnosis: `docker compose logs email-gateway`. Look for ERROR
 `workflow_failed` (`fail_reason`, `http_status`).
 
-## Yandex foundation models (TODO)
+## Yandex foundation models
 
-Not a current gate. In Studio, use **OpenAI-API-compatible** (there is
-usually no “Yandex” tile) with Yandex Cloud’s OpenAI-compatible base URL,
-API key, folder/catalog id, and model name. Credentials stay in Dify’s
-encrypted provider store. Do not install OpenAI, watsonx, Cohere, or Jina
-providers. Embedding stays local Ollama. Policy:
-[requirements.md](requirements.md) SEC-8.
+One-time provider setup (FR-10). Credentials stay in Dify’s encrypted
+store; never Git or exported DSL. Policy:
+[requirements.md](requirements.md) SEC-8. This slice uses Yandex Cloud AI
+Studio as the external generator. Embedding stays local Ollama.
+
+1. **Yandex Cloud.** Grant the service account role
+   `ai.languageModels.user`. Create an API key with scope
+   `yc.ai.languageModels.execute`.
+
+2. **Dify Studio.** **Integrations → Model Provider** → add
+   **OpenAI-API-compatible** (usually no “Yandex” tile; that is Dify’s
+   label for an OpenAI-compatible HTTP client, used here to reach the
+   Yandex endpoint, not a ban on other tiles):
+   - **API Key:** the Yandex Cloud secret (Dify encrypted store only)
+   - **API Base URL:** `https://ai.api.cloud.yandex.net/v1`
+   - **Completion mode:** **Chat**
+   - **Model name:** copy the model **string** from Yandex Cloud AI Studio.

@@ -97,6 +97,30 @@ def test_parse_outputs_source_filenames_list() -> None:
     assert citation_url in result.reply_text
 
 
+def test_parse_outputs_skips_sources_on_knowledge_gap_miss() -> None:
+    """A knowledge-gap reply skips Sources even when filenames are set."""
+    mixed_marker = constants.KNOWLEDGE_GAP_REPLY_MARKER.swapcase()
+    payload = {
+        "data": {
+            "status": _WORKFLOW_STATUS_SUCCEEDED,
+            "outputs": {
+                "reply_text": mixed_marker,
+                "ticket_id": _TICKET_ID,
+                "source_filenames": [_SOURCE_FILENAME],
+            },
+        }
+    }
+    result = parse_outputs(payload, citation_url_base=_CITATION_URL_BASE)
+    citation_url = f"{_CITATION_URL_BASE}{_SOURCE_FILENAME}"
+    assert result.ticket_id == _TICKET_ID
+    assert result.source_filenames == [_SOURCE_FILENAME]
+    assert constants.CITATION_SOURCES_HEADING not in result.reply_text
+    assert citation_url not in result.reply_text
+    assert constants.TICKET_ID_HEADING in result.reply_text
+    assert _TICKET_ID in result.reply_text
+    parse_outputs(payload, citation_url_base="")
+
+
 def test_parse_outputs_empty_base_rejects_filenames() -> None:
     """Non-empty source_filenames require a configured URL prefix."""
     with pytest.raises(OutputsError):
@@ -123,6 +147,24 @@ def test_parse_outputs_rejects_nested_source_filename() -> None:
                     "status": _WORKFLOW_STATUS_SUCCEEDED,
                     "outputs": {
                         "reply_text": _REPLY_OK,
+                        "source_filenames": [_SOURCE_FILENAME_NESTED],
+                    },
+                }
+            },
+            citation_url_base=_CITATION_URL_BASE,
+        )
+
+
+def test_parse_outputs_rejects_nested_filename_on_knowledge_gap() -> None:
+    """Invalid filenames still fail when reply_text is a knowledge-gap miss."""
+    mixed_marker = constants.KNOWLEDGE_GAP_REPLY_MARKER.swapcase()
+    with pytest.raises(OutputsError):
+        parse_outputs(
+            {
+                "data": {
+                    "status": _WORKFLOW_STATUS_SUCCEEDED,
+                    "outputs": {
+                        "reply_text": mixed_marker,
                         "source_filenames": [_SOURCE_FILENAME_NESTED],
                     },
                 }

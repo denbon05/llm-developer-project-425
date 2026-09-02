@@ -25,6 +25,7 @@ from .greenmail import (
     GreenMailEndpoints,
     deliver_message,
     list_inbox_bodies,
+    list_inbox_messages,
     list_unseen_uids,
     make_text_mail,
     wait_for_inbox_bodies,
@@ -33,6 +34,7 @@ from .greenmail import (
 from .testdata import (
     CITATION_URL_BASE,
     DIFY_APP_KEY,
+    INPUT_BLOCKQUOTE,
     INPUT_REQUEST_TEXT,
     INPUT_SUBJECT,
     INPUT_USER_EMAIL,
@@ -66,12 +68,19 @@ _CITE_BODY = "docs question"
 _GREETING_BODY = "Hi there!"
 _TOXIC_TERM = constants.TOXICITY_TERMS[0]
 _TOXIC_BODY = f"you {_TOXIC_TERM}, fix the vpn"
+_INJECTION_PHRASE = constants.INJECTION_PHRASE_TERMS[0]
+_INJECTION_BODY = f"please {_INJECTION_PHRASE}"
+# Latest question vs quoted previous answer (portable `>` prefix).
+_LATEST_QUESTION = "How do I reset the VPN token?"
+_QUOTED_PREVIOUS_ANSWER = "Use the self-service portal."
 
 # Workflow End text that must not be SMTP-sent when source_filenames fail.
 _REJECTED_WORKFLOW_REPLY = "should not send"
 _SOURCE_FILENAME_NESTED = "../secret.md"
 _SOURCE_FILENAME = "vpn-access.md"
 _CITED_REPLY = "use the company vpn"
+# Known inbound Message-ID so the SMTP reply can thread (RFC 5322).
+_INBOUND_MESSAGE_ID = "<vpn-thread-1@example.test>"
 
 
 class FakeDify:
@@ -243,7 +252,12 @@ async def test_mask_before_dify_and_blocking_contract(
     inputs = payload["inputs"]
     assert inputs[INPUT_USER_EMAIL] == EMPLOYEE_EMAIL
     assert set(inputs) == START_INPUT_KEYS
-    combined = inputs[INPUT_SUBJECT] + inputs[INPUT_REQUEST_TEXT]
+    assert inputs[INPUT_BLOCKQUOTE] == ""
+    combined = (
+        inputs[INPUT_SUBJECT]
+        + inputs[INPUT_REQUEST_TEXT]
+        + inputs[INPUT_BLOCKQUOTE]
+    )
     assert PII_EMAIL_IN_BODY not in combined
     assert PII_EMAIL_IN_SUBJECT not in combined
     assert PII_CARD not in combined
@@ -254,15 +268,50 @@ async def test_mask_before_dify_and_blocking_contract(
 
 
 @pytest.mark.asyncio
+async def test_dify_request_text_is_latest_question_not_quote(
+    greenmail: GreenMailEndpoints,
+    gateway_settings: Settings,
+) -> None:
+    """Dify request_text is the latest question; blockquote holds the quote."""
+    inbound_body = (
+        f"{_LATEST_QUESTION} Call {PII_PHONE}\n\n"
+        f"> {_QUOTED_PREVIOUS_ANSWER} {PII_EMAIL_IN_BODY}"
+    )
+    deliver_message(
+        greenmail,
+        make_text_mail(subject="VPN follow-up", body=inbound_body),
+    )
+    wait_for_unseen(greenmail, SUPPORT_EMAIL, SUPPORT_PASSWORD)
+
+    fake_dify = FakeDify()
+    await _run_one_poll_cycle(gateway_settings, fake_dify)
+
+    _, payload = _require_single_workflow_call(fake_dify)
+    inputs = payload["inputs"]
+    assert set(inputs) == START_INPUT_KEYS
+    request_text = inputs[INPUT_REQUEST_TEXT]
+    blockquote = inputs[INPUT_BLOCKQUOTE]
+    assert _LATEST_QUESTION in request_text
+    assert _QUOTED_PREVIOUS_ANSWER not in request_text
+    assert _QUOTED_PREVIOUS_ANSWER in blockquote
+    assert _LATEST_QUESTION not in blockquote
+    assert PII_PHONE not in request_text
+    assert PII_PHONE not in blockquote
+    assert PII_EMAIL_IN_BODY not in request_text
+    assert PII_EMAIL_IN_BODY not in blockquote
+    assert PII_PHONE_MASK in request_text
+    assert privacy_constants.PLACEHOLDER_EMAIL in blockquote
+
+
+@pytest.mark.asyncio
 async def test_smtp_reply_uses_reply_text_then_seen(
     greenmail: GreenMailEndpoints,
     gateway_settings: Settings,
 ) -> None:
-    """Echoed reply_text is SMTP-sent; support INBOX then has no UNSEEN."""
-    deliver_message(
-        greenmail,
-        make_text_mail(subject="VPN", body=_VPN_BODY),
-    )
+    """Echoed reply_text is SMTP-sent in-thread; then no UNSEEN on support."""
+    inbound = make_text_mail(subject="VPN", body=_VPN_BODY)
+    inbound["Message-ID"] = _INBOUND_MESSAGE_ID
+    deliver_message(greenmail, inbound)
     wait_for_unseen(greenmail, SUPPORT_EMAIL, SUPPORT_PASSWORD)
 
     fake_dify = FakeDify()
@@ -272,6 +321,12 @@ async def test_smtp_reply_uses_reply_text_then_seen(
         greenmail, EMPLOYEE_EMAIL, EMPLOYEE_PASSWORD
     )
     assert any(_VPN_BODY in item for item in reply_bodies)
+    replies = list_inbox_messages(greenmail, EMPLOYEE_EMAIL, EMPLOYEE_PASSWORD)
+    assert any(
+        parsed.get("In-Reply-To") == _INBOUND_MESSAGE_ID
+        and parsed.get("References") == _INBOUND_MESSAGE_ID
+        for parsed in replies
+    )
     assert list_unseen_uids(greenmail, SUPPORT_EMAIL, SUPPORT_PASSWORD) == []
 
 
@@ -462,4 +517,28 @@ async def test_toxic_mail_does_not_call_dify(
     )
     assert any(constants.STATIC_ACK_TEXT in item for item in reply_bodies)
     assert all(_TOXIC_TERM not in item for item in reply_bodies)
+    assert list_unseen_uids(greenmail, SUPPORT_EMAIL, SUPPORT_PASSWORD) == []
+
+
+@pytest.mark.asyncio
+async def test_injection_phrase_mail_does_not_call_dify(
+    greenmail: GreenMailEndpoints,
+    gateway_settings: Settings,
+) -> None:
+    """Injection/SQL phrase SMTP-sends the static ack and skips Dify."""
+    deliver_message(
+        greenmail,
+        make_text_mail(subject="help", body=_INJECTION_BODY),
+    )
+    wait_for_unseen(greenmail, SUPPORT_EMAIL, SUPPORT_PASSWORD)
+
+    fake_dify = FakeDify()
+    await _run_one_poll_cycle(gateway_settings, fake_dify)
+
+    assert fake_dify.requests == []
+    reply_bodies = wait_for_inbox_bodies(
+        greenmail, EMPLOYEE_EMAIL, EMPLOYEE_PASSWORD
+    )
+    assert any(constants.STATIC_ACK_TEXT in item for item in reply_bodies)
+    assert all(_INJECTION_PHRASE not in item for item in reply_bodies)
     assert list_unseen_uids(greenmail, SUPPORT_EMAIL, SUPPORT_PASSWORD) == []

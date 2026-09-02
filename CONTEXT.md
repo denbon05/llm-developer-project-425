@@ -32,12 +32,12 @@ documents.
 - **Legitimate unsupported help-desk request** — an in-scope employee support
   request for which the available knowledge is not sufficient to give a
   grounded answer.
-- **Non-helpdesk request** — content unrelated to obtaining internal employee
-  support, including general conversation and requests outside the help-desk
-  remit.
+- **Off-topic request** — content unrelated to obtaining internal employee
+  support, including general conversation, trivia, and other questions
+  outside the help-desk remit.
 - **Injection** — untrusted content that attempts to override governing
   instructions, change authorized scope, disclose protected information, or
-  cause an unauthorized action.
+  cause an unauthorized action; obvious patterns may be gateway-regex.
 
 ## Ticket categories and statuses
 

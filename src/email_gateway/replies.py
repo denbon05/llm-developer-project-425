@@ -14,6 +14,7 @@ class StaticReplySource(StrEnum):
     """Which intake rule produced the canned body."""
 
     TOXICITY = "toxicity"
+    INJECTION = "injection"
     GREETING = "greeting"
 
 
@@ -34,7 +35,7 @@ class _Rule:
     matches: Callable[[str, str], bool]
 
 
-def _compile_toxicity_re(terms: tuple[str, ...]) -> re.Pattern[str]:
+def _compile_terms_re(terms: tuple[str, ...]) -> re.Pattern[str]:
     """Build an OR-pattern: whole words get ``\\b``; phrases do not."""
     parts: list[str] = []
     for term in terms:
@@ -47,7 +48,8 @@ def _compile_toxicity_re(terms: tuple[str, ...]) -> re.Pattern[str]:
     return re.compile("|".join(parts), re.IGNORECASE)
 
 
-_TOXICITY_RE = _compile_toxicity_re(constants.TOXICITY_TERMS)
+_TOXICITY_RE = _compile_terms_re(constants.TOXICITY_TERMS)
+_INJECTION_PHRASE_RE = _compile_terms_re(constants.INJECTION_PHRASE_TERMS)
 # Whole remaining text only; a greeting plus a question is not a greeting.
 _GREETING_RE = re.compile(
     r"^(?:"
@@ -64,15 +66,23 @@ def _is_toxic(subject: str, body: str) -> bool:
     return _TOXICITY_RE.search(f"{subject}\n{body}") is not None
 
 
+def _is_injection(subject: str, body: str) -> bool:
+    """True if a cheap injection/SQL phrase appears in subject or body."""
+    return _INJECTION_PHRASE_RE.search(f"{subject}\n{body}") is not None
+
+
 def _is_greeting(subject: str, body: str) -> bool:
     """True when the whole remaining text is only a greeting (no question)."""
     blob = " ".join((body or "").split()) or " ".join((subject or "").split())
     return bool(blob) and _GREETING_RE.fullmatch(blob) is not None
 
 
-# First matching rule wins (toxicity before greeting).
+# First matching rule wins (toxicity, then injection phrases, then greeting).
 _RULES: tuple[_Rule, ...] = (
     _Rule(StaticReplySource.TOXICITY, constants.STATIC_ACK_TEXT, _is_toxic),
+    _Rule(
+        StaticReplySource.INJECTION, constants.STATIC_ACK_TEXT, _is_injection
+    ),
     _Rule(
         StaticReplySource.GREETING, constants.GREETING_REPLY_TEXT, _is_greeting
     ),

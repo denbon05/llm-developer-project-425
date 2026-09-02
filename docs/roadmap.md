@@ -6,8 +6,8 @@ requirements, and architecture before the next phase starts. No implementation
 agent owns the whole system. Each phase updates affected documentation and
 ends with a verification gate and a short learning checkpoint.
 
-Phases 1–6 are historical (done). Current work is Phase 7 (controlled
-intelligence). `list-my-tickets` already matches the Studio-binding contract
+Phases 1–7 are historical (done). Current work is Phase 8 (lifecycle and
+recovery). `list-my-tickets` already matches the Studio-binding contract
 (`text`, optional `statuses`).
 
 ## Phase 1 — Fix the design
@@ -125,14 +125,23 @@ intelligence). `list-my-tickets` already matches the Studio-binding contract
 ## Phase 7 — Controlled intelligence
 
 - **Owner:** bounded Yandex/RAG integration agent.
-- **Scope:** injection/scope (prompt-injection does not create tickets);
+- **Scope:** cheap gateway regex for obvious injection/SQL phrases (before
+  Dify) plus intent SML (`safe` | `injection` | `off-topic`; injection and
+  off-topic skip KR/generator and all MCP and do not create or append
+  tickets; they may share one static Template `reply_text`);
   knowledge-gap reply admits the miss, creates a ticket, SMTP includes the
   new `ticket_id`; no read-back of `messages`; SEC-2 mask format; live
   Yandex generator; categorizer SML; grounded citations; token
-  accounting. Toxicity/hello stay gateway regex (Phase 4).
-- **Verification gate:** merge-gate uses fake Dify and local dependencies.
-  Live Yandex classifier/generator, usage matching, and full Dify/Yandex
-  behavior are opt-in smoke/evaluation checks.
+  accounting; gateway threading/context (SMTP ``In-Reply-To`` /
+  ``References``; split latest ``request_text`` from quoted ``blockquote``
+  before Dify). Toxicity/hello remain gateway regex (Phase 4).
+- **Verification gate:** done. `email_helpdesk` uses live Yandex on the
+  answer LLM and classifiers (intent SML then ticket/KB graph; categorizer
+  SML on the gap path). Gateway regex is toxicity, then cheap
+  injection/SQL phrases, then hello; residual injection/off-topic stay in
+  Dify and may share one Template. SMTP skips `Sources:` when
+  `reply_text` contains the knowledge-gap marker. Merge-gate stays
+  **fake Dify**; live Yandex is opt-in smoke.
 - **Learning checkpoint:** identify where nondeterministic model behavior is
   constrained by deterministic gates, types, thresholds, and tools.
 

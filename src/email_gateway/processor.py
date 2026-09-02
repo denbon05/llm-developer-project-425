@@ -11,6 +11,7 @@ import httpx
 
 from email_gateway.clients import dify, mailbox
 from email_gateway.config import Settings
+from email_gateway.normalize import split_quoted_body
 from email_gateway.replies import match_static_reply
 from privacy.masking import mask_text
 
@@ -102,7 +103,7 @@ class Processor:
             return
         masked_subject = mask_text(message.subject)
         masked_body = mask_text(message.body)
-        # Toxicity / hello: static SMTP body, no Dify.
+        # Toxicity / injection-SQL / hello: static SMTP body, no Dify.
         static_reply = match_static_reply(
             subject=masked_subject, body=masked_body
         )
@@ -112,10 +113,12 @@ class Processor:
             )
         else:
             # Blocking Service API: wait for End outputs, not a stream.
+            request_text, blockquote = split_quoted_body(masked_body)
             workflow_result = await self._dify.run_blocking_workflow(
                 user_email=message.sender,
                 subject=masked_subject,
-                request_text=masked_body,
+                request_text=request_text,
+                blockquote=blockquote,
             )
             outbound = build_outbound_from_workflow(workflow_result)
             if outbound is None:
@@ -129,6 +132,8 @@ class Processor:
             to_addr=message.sender,
             subject=message.subject,
             body=outbound.text,
+            in_reply_to=message.message_id,
+            references=message.references,
         )
         seen = False
         if sent and should_mark_seen:

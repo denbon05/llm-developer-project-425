@@ -59,6 +59,7 @@ class Client:
         user_email: str,
         subject: str,
         request_text: str,
+        blockquote: str,
     ) -> CallResult:
         """POST Start fields; wait for End outputs or a transport/HTTP miss."""
         headers = {
@@ -72,6 +73,7 @@ class Client:
                 "user_email": user_email,
                 "subject": subject,
                 "request_text": request_text,
+                "blockquote": blockquote,
             },
             # blocking: HTTP returns only after the workflow End node.
             "response_mode": "blocking",

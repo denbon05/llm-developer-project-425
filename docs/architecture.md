@@ -18,11 +18,13 @@ human/operator path remains out of scope.
   normalization (plain text / sanitized HTML; ignore attachments), one-way
   PII masking via `src/privacy` **before** any Dify call, blocking Service
   API `POST …/v1/workflows/run`, validation of `data.outputs`, SMTP reply
-  using the live mail-session recipient, then optional IMAP `\Seen`. A
-  failed Dify call or unusable outputs: log error, skip SMTP, leave UNSEEN
-  (next poll retries). No
+  using the live mail-session recipient (``In-Reply-To`` / ``References``
+  from the inbound ``Message-ID`` so the client threads the reply), then
+  optional IMAP `\Seen`. A failed Dify call or unusable outputs: log error,
+  skip SMTP, leave UNSEEN (next poll retries). No
   application outbox. After masking, ordered gateway regex intake
-  (toxicity then hello) may SMTP-reply without Dify. No gateway MCP,
+  (toxicity, then cheap injection/SQL phrases, then hello) may SMTP-reply
+  without Dify. No gateway MCP,
   escalate-in-gateway, or size/rate gates (limits deferred).
 - **Dify brain module** — two Workflow-type Apps (graphs of nodes and
   edges on the Studio canvas — not an agent that function-calls tools).
@@ -31,20 +33,20 @@ human/operator path remains out of scope.
   `ticket_id`; categorizer → `category`). The answer LLM node does not
   function-call MCP and must not invent `user_id` / `ticket_id`.
   - `email_helpdesk` — User Input start. Graph design (committed DSL is
-    this topology with Knowledge Retrieval plus Code/Template stubs for
-    answer and categorizer — not a Start→End echo. Phase 7 is live
-    Yandex):
-    (1) `list-my-tickets` tool node early; (2) retrieve: Knowledge
-    Retrieval with Weighted Score (local Ollama embeddings) then a
-    dedicated answer LLM; (3) IF a non-`closed` ticket: answer LLM → append user → append
-    agent (sequential appends); (4) ELSE IF KB hit: answer LLM → End, no
-    MCP create/append; (5) ELSE knowledge gap: answer LLM admits the miss;
+    this topology with Knowledge Retrieval and live Yandex on the answer
+    LLM and classifiers — not a Start→End echo):
+    (1) intent SML on `request_text` (`safe` | `injection` | `off-topic`);
+    `injection` / `off-topic` skip KR, the answer LLM, and all MCP and may
+    share one static Template `reply_text` → End; (2) `safe` →
+    `list-my-tickets`; (3) retrieve: Knowledge Retrieval with Weighted Score
+    (local Ollama embeddings) then a dedicated answer LLM; (4) IF a non-`closed` ticket: answer LLM → append user → append
+    agent (sequential appends); (5) ELSE IF KB hit: answer LLM → End, no
+    MCP create/append; (6) ELSE knowledge gap: answer LLM admits the miss;
     then a sequential categorizer SML on `request_text` → `create-ticket`
     (needs category + text) → append user → append agent. Skip the
     categorizer on KB-hit and follow-up paths. `create-ticket` must not
-    run in parallel with append (needs `ticket_id`). Injection/scope
-    (Phase 7): static block, no `create-ticket`. Toxicity/hello stay
-    gateway regex.
+    run in parallel with append (needs `ticket_id`). Toxicity, cheap
+    injection/SQL phrases, and hello stay gateway regex.
   - Escalate — Schedule Trigger (daily / 24h; hourly allowed for demo)
     that **only** HTTP-calls `POST /v1/tickets/escalate-stale`, with a
     retry policy (counts TBD). No escalate rules in Dify.
@@ -148,12 +150,10 @@ flowchart LR
     Dify -->|masked content only| Yandex[Yandex Cloud AI Studio]
 ```
 
-The two Compose projects use pinned images, plugins, and model tags. Yandex
-Cloud AI Studio is the only external model provider receiving application
-content in v1; configuration and acceptance reject OpenAI, watsonx, Cohere,
-Jina, and other external providers. Ollama is the internal embedding host;
-Dify uses `http://ollama:11434` on the Compose network. Dify's PostgreSQL
-and helpdesk PostgreSQL never share ownership or schemas.
+The two Compose projects use pinned images, plugins, and model tags. This
+slice uses Yandex Cloud AI Studio as the external generator; embedding
+stays local Ollama. Dify uses `http://ollama:11434` on the Compose network.
+Dify's PostgreSQL and helpdesk PostgreSQL never share ownership or schemas.
 
 Compose definitions live at root `compose.yml` (application stack:
 email-gateway, ticketing, helpdesk PostgreSQL, GreenMail) and
@@ -167,38 +167,44 @@ project joins it as external (start Dify first). `plugin_daemon` and
 both with foreground `make dify-stack-up` / `make app-stack-up` (two
 terminals). Secret-free Dify App DSL exports live under `dify/apps/` —
 `email_helpdesk.yml` is the graph above with Knowledge Retrieval
-(Weighted Score, local embeddings) and Code/Template stubs for answer
-and categorizer (MCP tool nodes, IF/ELSE, one Variable Aggregator, End
+(Weighted Score, local embeddings) and live Yandex on the answer LLM
+and classifier (MCP tool nodes, IF/ELSE, Ticket ID and Reply aggregators, End
 `reply_text` / `ticket_id` / `source_filenames`). The Escalate app is
 Phase 8.
 
 ## Minimal Dify contract
 
 Gateway-facing app: `email_helpdesk`. Start field types: `user_email` and
-`subject` = short text; `request_text` = paragraph. **Not** JSON Field.
+`subject` = short text; `request_text` and `blockquote` = paragraph.
+**Not** JSON Field.
 
 ```text
 inputs (User Input / Start):
   user_email      # sender mailbox; MCP user_id
   subject
-  request_text    # already-masked body
+  request_text    # already-masked latest unquoted question (KR)
+  blockquote      # already-masked quoted thread; "" when none
 
 outputs (End):
   reply_text         # required string; SMTP body (gateway may append
-                     # Ticket: on create, and Sources:)
-  ticket_id          # optional string; set when a ticket exists.
-                     # SMTP `Ticket:` line only if this run created it.
+                     # Ticket: and Sources:)
+  ticket_id          # optional string; set when a ticket exists
+                     # (create or follow-up). Empty/omitted on KB-hit
+                     # with no ticket. Gateway appends SMTP `Ticket:`
+                     # when this is a non-empty string.
   source_filenames   # optional list[str] or null; omit/[] on KB miss.
                      # knowledge_base/ filenames (not URLs).
 ```
 
 The gateway validates outputs. Extra keys are ignored. It appends a
-`Ticket:` line when this run created a ticket. It rejects `source_filenames`
-that are not a single filename, builds `{CITATION_URL_BASE}{filename}`,
-and appends a `Sources:` footer. Empty, omitted, or null
-`source_filenames` skip the footer. Blocking JSON may still expose
-`workflow_run_id` / usage metadata. SSE is optional, not the Phase 4
-interface.
+`Ticket:` line when End `ticket_id` is a non-empty string. It rejects
+`source_filenames` that are not a single filename, builds
+`{CITATION_URL_BASE}{filename}`, and appends a `Sources:` footer unless
+`reply_text` contains the knowledge-gap marker (`I don't know`, same
+string as the workflow IF/ELSE `value`) — case-insensitive, even when
+filenames are present. Empty, omitted, or null `source_filenames` skip
+the footer. Blocking JSON may still expose `workflow_run_id` / usage
+metadata. SSE is optional, not the Phase 4 interface.
 
 **Host URL:** `POST http://localhost:13080/v1/workflows/run`  
 **In-network (Compose, when the gateway runs in the app stack):**
@@ -218,7 +224,8 @@ Blocking example (keys must match Start names):
   "inputs": {
     "user_email": "employee1@example.test",
     "subject": "VPN",
-    "request_text": "already-masked body"
+    "request_text": "already-masked latest question",
+    "blockquote": ""
   },
   "response_mode": "blocking",
   "user": "employee1@example.test"
@@ -227,7 +234,7 @@ Blocking example (keys must match Start names):
 
 `user` is Dify’s log identity; set it to the same sender. Merge-gate tests
 use a **fake** of this contract (no paid models, no live Studio in CI).
-Local/opt-in may call the live graph (answer/categorizer still stubs).
+Local/opt-in may call the live graph.
 
 The old `WorkflowRequestV1` / `WorkflowResultV1` action-enum contract is
 retired. The gateway waits for `data.outputs`, validates, SMTP-replies,
@@ -239,21 +246,27 @@ then may set `\Seen`.
    mailbox as `user_email` / MCP `user_id` (MVP).
 2. It normalizes plain text or sanitized HTML and ignores attachments.
 3. It one-way-masks required PII. Size/rate limits are deferred.
-4. Gateway regex intake (toxicity, then hello): a match SMTP-sends a static
-   body (no Dify, no KB, no MCP). Otherwise the gateway POSTs blocking
-   `/v1/workflows/run`. It does not call MCP. If that call fails or End
+4. Gateway regex intake (toxicity, then cheap injection/SQL phrases, then
+   hello) uses the **full** masked subject+body before the
+   `request_text`/`blockquote` split: a match SMTP-sends a static body (no
+   Dify, no KB, no MCP). Otherwise the gateway splits that body into
+   `request_text` (latest unquoted question) and `blockquote` (quoted
+   remainder, or `""`) and POSTs blocking
+   `/v1/workflows/run`. Knowledge Retrieval stays on `request_text`. It does
+   not call MCP. If that call fails or End
    outputs are unusable, the gateway logs an error, skips SMTP, and leaves
    the message UNSEEN for the next poll.
-5. Dify calls `list-my-tickets` and branches. Injection/scope
-   (Phase 7): static block / bounded refusal as workflow `reply_text` when
-   the run finishes (injection does not `create-ticket`). Then ticket/KB
-   routing:
+5. Dify classifies `request_text` (`safe` | `injection` | `off-topic`).
+   `injection` / `off-topic` skip MCP, KR, and the answer LLM (no ticket,
+   no append); they may share one static Template `reply_text` that SMTP
+   when the workflow finishes. `safe` calls
+   `list-my-tickets` and follows ticket/KB routing:
 
    | State | KB can answer | DB |
    | --- | --- | --- |
    | No non-`closed` ticket | yes | **no** ticket, **no** `messages` — email only + citations |
    | No non-`closed` ticket | no | `create-ticket` **and** `append-message` user then agent; `reply_text` admits the miss; SMTP includes the new `ticket_id` |
-   | Non-`closed` ticket already exists (`open` **or** `escalated`) | yes or no | **always** append user + agent; **still run KB** |
+   | Non-`closed` ticket already exists (`open` **or** `escalated`) | yes or no | **always** append user + agent; **still run KB**; SMTP `Ticket:` when End `ticket_id` is set |
 
    Employee cannot override a KB hit into a new ticket. Categorizer runs
    only on the knowledge-gap path, sequentially before `create-ticket`.
@@ -263,8 +276,9 @@ then may set `\Seen`.
    response may be passed on the agent append (Dify performs that append).
    Bad or out-of-scope ids fail on the MCP call inside Dify.
 7. On valid outputs, the gateway SMTP-sends `reply_text` (with a `Ticket:`
-   line when this run created a ticket, and a Sources footer when
-   `source_filenames` is non-empty) using the live
+   line when End `ticket_id` is a non-empty string, and a Sources footer when
+   `source_filenames` is non-empty and `reply_text` does not contain the
+   knowledge-gap marker) using the live
    mail-session recipient, then may set IMAP `\Seen`. A failed Dify call
    does not SMTP and does not set `\Seen`. Effects are best-effort
    at-least-once. SMTP duplicate window: one poll interval (default 60s)
@@ -289,9 +303,9 @@ then may set `\Seen`.
   create / categorizer — not from the answer LLM, which must not invent
   `user_id` / `ticket_id`. A caller who can invoke MCP can still pass any
   synthetic email; this is not production authentication.
-- Yandex Cloud AI Studio is the only external model provider and receives
-  only already-masked content. SMTP uses the gateway's live recipient from
-  the mail session.
+- This slice uses Yandex Cloud AI Studio as the external generator and
+  sends it only already-masked content. SMTP uses the gateway's live
+  recipient from the mail session.
 - The HTTP and MCP adapters are private-network interfaces.
 
 ## Data ownership
@@ -420,7 +434,7 @@ human/operator path remains out of scope.
 ├── dify/
 │   ├── compose.yml              # Dify platform stack
 │   └── apps/                    # one secret-free DSL export per Dify App
-│       └── email_helpdesk.yml   # email graph (Weighted Score KR; stub LLM)
+│       └── email_helpdesk.yml   # email graph (Weighted Score KR; live Yandex)
 ├── src/
 │   ├── contracts/
 │   ├── privacy/

@@ -1,4 +1,4 @@
-"""Unit tests for toxicity/greeting canned SMTP bodies."""
+"""Unit tests for toxicity/injection/greeting canned SMTP bodies."""
 
 from email_gateway import constants
 from email_gateway.replies import StaticReplySource, match_static_reply
@@ -9,6 +9,12 @@ _TOXIC_TERM = constants.TOXICITY_TERMS[0]
 _TOXIC_IN_BODY = f"hi you {_TOXIC_TERM}"
 # Must remain in constants.TOXICITY_TERMS (subject-only match).
 _SHUT_UP = "shut up"
+_VPN_QUESTION = "please enable vpn"
+_DROP_TABLE = next(
+    term
+    for term in constants.INJECTION_PHRASE_TERMS
+    if term.casefold() == "drop table"
+)
 
 
 def test_plain_greeting_matches() -> None:
@@ -44,6 +50,37 @@ def test_toxicity_beats_greeting() -> None:
 
 def test_toxicity_in_subject_only() -> None:
     """A toxicity term in Subject only still selects the static ack."""
-    reply = match_static_reply(subject=_SHUT_UP, body="please enable vpn")
+    reply = match_static_reply(subject=_SHUT_UP, body=_VPN_QUESTION)
     assert reply is not None
     assert reply.source is StaticReplySource.TOXICITY
+
+
+def test_drop_table_in_subject_only() -> None:
+    """DROP TABLE in Subject only still selects the static ack."""
+    reply = match_static_reply(subject=_DROP_TABLE, body=_VPN_QUESTION)
+    assert reply is not None
+    assert reply.source is StaticReplySource.INJECTION
+    assert reply.text == constants.STATIC_ACK_TEXT
+
+
+def test_toxicity_beats_injection_phrase() -> None:
+    """Toxicity wins over a cheap injection/SQL phrase when both match."""
+    phrase = constants.INJECTION_PHRASE_TERMS[0]
+    reply = match_static_reply(subject="hi", body=f"{_TOXIC_TERM} {phrase}")
+    assert reply is not None
+    assert reply.source is StaticReplySource.TOXICITY
+    assert reply.text == constants.STATIC_ACK_TEXT
+
+
+def test_injection_phrase_beats_greeting() -> None:
+    """A cheap injection/SQL phrase wins over a greeting-only body."""
+    phrase = constants.INJECTION_PHRASE_TERMS[0]
+    reply = match_static_reply(subject=phrase, body=_GREETING_BODY)
+    assert reply is not None
+    assert reply.source is StaticReplySource.INJECTION
+    assert reply.text == constants.STATIC_ACK_TEXT
+
+
+def test_vpn_question_without_injection_phrase_is_not_static() -> None:
+    """A real VPN question without intake phrases is not a canned reply."""
+    assert match_static_reply(subject="VPN", body=_VPN_QUESTION) is None

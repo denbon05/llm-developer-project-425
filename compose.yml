@@ -122,7 +122,17 @@ services:
       DIFY_WORKFLOW_URL: http://nginx:80/v1/workflows/run
       DIFY_EMAIL_HELPDESK_API_KEY: ${DIFY_EMAIL_HELPDESK_API_KEY}
       CITATION_URL_BASE: ${CITATION_URL_BASE}
-    command: ["uv", "run", "email-gateway"]
+    # watch src changes
+    command:
+      [
+        "uv",
+        "run",
+        "watchfiles",
+        "--filter",
+        "python",
+        "email-gateway",
+        "/app/src",
+      ]
     volumes:
       - ./src:/app/src
     depends_on:

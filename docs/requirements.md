@@ -28,22 +28,25 @@ ticket exists.
 - **FR-2 — Safe intake.** Size and per-sender rate limits are **deferred**
   (not a Phase 4 gate). After normalization and before any Dify call, the
   gateway applies one-way PII masking (`src/privacy`) so Studio logs never see
-  raw PII. Toxicity then hello are **gateway regex** (ordered intake rules in
-  `email_gateway.replies`): static SMTP body, no Dify, no KB, no MCP, no
-  ticket. A hello match must be the whole remaining text so a real question
-  still reaches Dify. Injection patterns and the helpdesk-scope classifier
-  remain separate Dify concerns. v1 has no sender or domain allowlist.
+  raw PII. Ordered **gateway regex** (in `email_gateway.replies`) is toxicity,
+  then cheap injection/SQL phrases, then hello: static SMTP body, no Dify, no
+  KB, no MCP, no ticket. A hello match must be the whole remaining text so a
+  real question still reaches Dify. Intent SML (`safe` | `injection` |
+  `off-topic`) still handles residual/subtle cases in Dify. v1 has no sender
+  or domain allowlist.
 - **FR-3 — Controlled routing.** After normalization and masking, the gateway
-  POSTs a blocking Dify run unless gateway intake already replied (it does
-  **not** call MCP). Dify calls `list-my-tickets` to branch. Injection/scope
-  (Phase 7) distinguish `injection`, `non_helpdesk`, and legitimate
-  help-desk content:
-  injection gets a static block and **no ticket**; non-helpdesk a bounded
-  refusal (those `reply_text` values SMTP when the workflow finishes). A
-  gateway Dify HTTP or outputs failure is not fail-open: log the error, skip
-  SMTP, leave the message UNSEEN, retry on the next poll. None of those
-  paths create a ticket from the gateway.
-  Legitimate content follows this table (employee **cannot** override):
+  POSTs a blocking Dify run (Start fields `user_email`, `subject`,
+  `request_text` = already-masked latest question, `blockquote` = already-masked
+  quoted thread or `""`) unless gateway intake already replied (it does
+  **not** call MCP). Dify first classifies Start `request_text` as `safe`,
+  `injection`, or `off-topic`. `injection` and `off-topic` skip KR, the
+  answer LLM, and all MCP (no create, no append — including no append on an
+  existing ticket). They may share one static Template `reply_text`. That
+  body SMTP when the workflow finishes. A gateway Dify HTTP or outputs
+  failure is not fail-open: log the error, skip SMTP, leave the message
+  UNSEEN, retry on the next poll. None of those paths create a ticket from
+  the gateway. `safe` then calls
+  `list-my-tickets` and follows this table (employee **cannot** override):
 
   | State | KB can answer | DB |
   | --- | --- | --- |
@@ -52,11 +55,14 @@ ticket exists.
   | Non-`closed` ticket already exists (`open` **or** `escalated`) | yes or no | **always** append user + agent; **still run KB** |
 
   On a knowledge gap (row 2), `reply_text` admits the miss; End `ticket_id`
-  is set; SMTP includes that id (gateway `Ticket:` line). `create-ticket`
-  MCP remains text-only (no `messages` row at the tool). The **workflow**
-  adds the first user mail via `append-message`. After a non-`closed`
-  ticket exists, persist messages even if KB could answer. The
-  ticket must exist and `ticket.user_id` must match `user_id` or append is
+  is set; SMTP includes that id (gateway `Ticket:` line). After a
+  non-`closed` ticket exists, persist messages even if KB could answer;
+  End still emits `ticket_id` and SMTP includes `Ticket:`. End
+  `ticket_id` is empty or omitted on a KB hit with no ticket (no
+  `Ticket:` line). `create-ticket` MCP remains text-only (no `messages`
+  row at the tool). The **workflow** adds the first user mail via
+  `append-message`. The ticket must exist and `ticket.user_id` must match
+  `user_id` or append is
   `NOT_FOUND`. Append inserts a message and bumps `tickets.updated_at`; it
   does not change ticket text or status. Agent rows may include usage.
   On the knowledge-gap path the categorizer runs sequentially (after the
@@ -78,8 +84,12 @@ ticket exists.
   versioned in Git. End `source_filenames` are `knowledge_base/` filenames
   from retrieval, never model-generated URLs. The gateway builds
   `{CITATION_URL_BASE}{filename}` and appends a `Sources:` footer to the
-  SMTP body. It rejects names that are not a single filename. Empty,
-  omitted, or null `source_filenames` is a KB miss (no footer).
+  SMTP body unless End `reply_text` contains the knowledge-gap marker
+  (`I don't know`, the same string as the workflow IF/ELSE `value` /
+  `LLM_KNOWLEDGE_GAP_REPLY`). That check is case-insensitive; the footer
+  is skipped even if `source_filenames` is a non-empty list. It rejects
+  names that are not a single filename. Empty, omitted, or null
+  `source_filenames` still skip the footer.
 - **FR-5 — Ticket ownership and interfaces.** The ticketing module owns durable
   tickets, messages, and escalation validity. MCP tools are
   `create-ticket`, `list-my-tickets`, `append-message`; `user_id` (sender
@@ -130,9 +140,8 @@ ticket exists.
   1. `email_helpdesk` — User Input start; gateway blocking Service API
      `POST …/v1/workflows/run`. Committed export
      `dify/apps/email_helpdesk.yml` is the architecture graph with
-     Knowledge Retrieval (Weighted Score, local embeddings) and
-     Code/Template stubs for answer and categorizer (not a Start→End
-     echo).
+     Knowledge Retrieval (Weighted Score, local embeddings) and live
+     Yandex on the LLM and classifier (not a Start→End echo).
   2. Escalate — Schedule Trigger (daily / 24h; hourly allowed for demo)
      that **only** HTTP-calls `POST /v1/tickets/escalate-stale`, with a
      retry policy (counts TBD). No escalate logic in Dify. User Input vs
@@ -193,10 +202,8 @@ ticket exists.
   tool argument. Secrets stay out of Git and exported
   Dify DSL. The workflow app key lives in gitignored `.env`
   (`DIFY_EMAIL_HELPDESK_API_KEY`).
-- **SEC-8 — External models.** **Yandex Cloud AI Studio** is the only allowed
-  **external provider** (many Studio foundation models are OK). Embedding
-  stays local Ollama. Configuration and acceptance reject OpenAI, watsonx,
-  Cohere, Jina, and every other external model provider.
+- **SEC-8 — External models.** This slice uses **Yandex Cloud AI Studio**
+  as the external generator; embedding stays local Ollama.
 
 ## Observability constraints
 
@@ -228,14 +235,17 @@ ticket exists.
 3. A legitimate request below the evidence threshold, with no non-`closed`
    ticket, creates exactly one ticket **and** a first user `messages` row,
    then an agent row for the reply. `reply_text` admits the knowledge gap;
-   the SMTP body includes the new ticket id. Categorizer runs only on
+   the SMTP body includes the new ticket id. Follow-up SMTP includes
+   `Ticket:` when End still emits `ticket_id`. Categorizer runs only on
    this knowledge-gap path (sequential: classify, then create, then
    appends).
-4. Toxicity/hello matches in the **gateway** produce a static SMTP body.
-   Dify is **not** called. No ticket. Injection (including “ignore previous
-   instructions” in the request body) and non-helpdesk input produce a
-   static block and a bounded refusal when the workflow finishes; injection
-   does not create a ticket.
+4. Toxicity, cheap injection/SQL phrases, and hello matches in the
+   **gateway** produce a static SMTP body. Dify is **not** called. No ticket.
+   Cheap phrases include “ignore previous instruction”, “ignore previous
+   instructions”, and DROP TABLE (case-insensitive). Residual `injection`
+   and `off-topic` skip KR, the answer LLM, and all MCP (no create, no
+   append); they may share one static Template `reply_text` when the
+   workflow finishes.
    A gateway Dify HTTP or outputs failure logs an error, skips SMTP, and
    leaves the message UNSEEN for the next poll (no fail-open canned body);
    none of those paths creates a ticket from the gateway.
@@ -284,9 +294,8 @@ ticket exists.
 12. Restart and restore checks preserve ticket/message data; deleting the
     vector index and re-ingesting canonical Git documents restores retrieval.
 13. Deterministic merge-gate CI uses fake Dify contract behavior, local
-    GreenMail/PostgreSQL/retrieval, static DSL/provider/contract checks that
-    reject non-Yandex-Cloud-AI-Studio external models, and any no-model Dify
-    slice. Real Yandex classifier/generator routes and full live
+    GreenMail/PostgreSQL/retrieval, and existing catalog/DSL retrieval
+    checks. Real Yandex classifier/generator routes and full live
     Dify/Yandex behavior are opt-in smoke/evaluation checks; fake tests do not
     verify them.
 14. Committed Dify App exports under `dify/apps/` contain no secrets and are
@@ -301,8 +310,7 @@ ticket exists.
 
 - operator UI, modeled human replies, and auto-close (the human/operator
   path after `escalated` remains out of scope; the LLM still replies)
-- OpenAI, watsonx, Cohere, Jina, and all non–Yandex Cloud AI Studio external
-  model APIs; provider comparison, runtime switching, and failover
+- provider comparison, runtime switching, and failover
 - Yandex-managed agent/workflow/database runtime services beyond Yandex Cloud
   AI Studio foundation-model endpoints
 - a real or public mailbox, real-mail sender assurance/authentication, public
@@ -315,14 +323,15 @@ ticket exists.
 
 ## Provisional parameters
 
-Toxicity word-list contents, escalation intervals, and escalate HTTP
-retry counts will be calibrated at their phase gates. Recorded retrieval
-defaults live in `tests/eval/golden_retrieval.json`. Until then, the
+Toxicity word-list contents, cheap injection/SQL phrases (small Phase 7
+list), escalation intervals, and escalate HTTP retry counts will be
+calibrated at their phase gates. Recorded retrieval defaults live in
+`tests/eval/golden_retrieval.json`. Until then, the
 required outcomes above are normative:
 KB hit with no non-`closed` ticket → email only (no ticket, no `messages`);
 knowledge gap with no non-`closed` ticket → `create-ticket` plus first-user
 `append-message` then agent append; non-`closed` ticket → always append
-user+agent and still retrieve; toxicity/hello → gateway static SMTP, no
-Dify, no ticket; gateway Dify HTTP/outputs failure → error log, no SMTP,
-leave UNSEEN (no fail-open); `open` tickets inactive on `updated_at`
-escalate over HTTP.
+user+agent and still retrieve; toxicity / cheap injection-SQL / hello →
+gateway static SMTP, no Dify, no ticket; gateway Dify HTTP/outputs failure →
+error log, no SMTP, leave UNSEEN (no fail-open); `open` tickets inactive on
+`updated_at` escalate over HTTP.
