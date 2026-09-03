@@ -10,7 +10,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from contracts.enums import DomainErrorCode
 from contracts.models import EscalateStaleRequest, EscalateStaleResponse
+from ticketing.logging_config import get_logger
 from ticketing.service import DomainError, TicketingService
+
+logger = get_logger(__name__)
 
 router = APIRouter(prefix="/v1")
 
@@ -71,10 +74,25 @@ async def escalate_stale(
     body: EscalateStaleRequest | None = None,
     service: TicketingService = Depends(get_service),
 ) -> EscalateStaleResponse:
-    """Escalate ``open`` tickets older than the inactivity threshold.
+    """Escalate ``open`` tickets older than the create-age threshold.
 
     JSON ``older_than_seconds`` is optional; omitted uses
     ``Settings.escalation_seconds``. Status-only — no message rows.
     """
     threshold = body.older_than_seconds if body is not None else None
-    return await service.escalate_stale(older_than_seconds=threshold)
+    effective_threshold = (
+        threshold
+        if threshold is not None
+        else service.settings.escalation_seconds
+    )
+    logger.info(
+        "escalate-stale started older_than_seconds=%s",
+        effective_threshold,
+    )
+    result = await service.escalate_stale(older_than_seconds=threshold)
+    logger.info(
+        "escalate-stale finished count=%s ticket_ids=%s",
+        result.count,
+        result.ticket_ids,
+    )
+    return result

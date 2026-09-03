@@ -16,10 +16,11 @@ always appends user + agent and still retrieves. The employee cannot force
 a ticket when knowledge can answer.
 
 This repository is an LLM-focused slice, not a full help-desk product.
-If an `open` ticket’s `updated_at` is older than the inactivity threshold
+If an `open` ticket’s `created_at` is older than the threshold
 (default 24h / `escalation_seconds`), it becomes `escalated` via scheduled
-HTTP. Dialogue via `append-message` refreshes `updated_at` and delays that
-step. After `escalated`, later employee mail still gets an LLM reply and
+HTTP. Follow-up `append-message` keeps the ticket `open` and refreshes
+`updated_at` but does not delay that step. After `escalated`, later
+employee mail still gets an LLM reply and
 two appends; status stays `escalated`. There is no operator UI or modeled
 human reply in this slice. `answered` and `closed` remain in the schema
 and are unused here.

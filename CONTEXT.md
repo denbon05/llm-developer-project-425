@@ -47,11 +47,11 @@ Canonical values live in `contracts.enums` (`TicketCategory`, `TicketStatus`,
 - **Categories:** `bug` (malfunction), `access` (permissions/auth), `docs`
   (guidance gap), `feature` (new capability).
 - **Roles:** `user` | `agent` only.
-- **Statuses:** `open` (LLM-active), `escalated` (inactivity on
-  `updated_at` via scheduled HTTP; default threshold
+- **Statuses:** `open` (LLM-active), `escalated` (`open` tickets whose
+  `created_at` is older than the threshold via scheduled HTTP; default
   `escalation_seconds` / 24h). `answered` and `closed` stay in the schema;
   this slice does not write them. One non-`closed` ticket per sender:
   later mail for that sender is that ticket. Append refreshes
-  `updated_at` so dialogue delays escalate. `escalated` still gets LLM
-  replies; append leaves status unchanged. A new ticket may be created
-  when this `user_id` has no non-`closed` ticket.
+  `updated_at` (last activity) but does not delay escalate. `escalated`
+  still gets LLM replies; append leaves status unchanged. A new ticket may
+  be created when this `user_id` has no non-`closed` ticket.

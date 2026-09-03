@@ -1,0 +1,132 @@
+app:
+  description: 'Escalate unhandled tickets '
+  icon: 🕰️
+  icon_background: '#E6F4D7'
+  icon_type: emoji
+  mode: workflow
+  name: escalate_stale
+  use_icon_as_answer_icon: false
+dependencies: []
+kind: app
+version: 0.7.0
+workflow:
+  conversation_variables: []
+  environment_variables:
+  - description: Value to escalate tickets after interval in seconds
+    id: f430a5ae-3668-41c2-8d94-e3f1552aa89f
+    name: ESCALATION_SECONDS
+    selector:
+    - env
+    - ESCALATION_SECONDS
+    value: 30
+    value_type: integer
+  features:
+    file_upload: {}
+    retriever_resource:
+      enabled: true
+    sensitive_word_avoidance:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        iteration_id: null
+        loop_id: null
+        sourceType: trigger-schedule
+        targetType: http-request
+      id: 1788454440620-source-1788454609353-target
+      source: '1788454440620'
+      sourceHandle: source
+      target: '1788454609353'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        config:
+          frequency: daily
+          mode: visual
+          timezone: UTC
+          visual_config:
+            monthly_days:
+            - 1
+            on_minute: 0
+            time: 12:00 AM
+            weekdays:
+            - sun
+        cron_expression: '* * * * *'
+        frequency: null
+        mode: cron
+        selected: false
+        timezone: Europe/Paris
+        title: Schedule Trigger
+        type: trigger-schedule
+        visual_config: null
+      height: 130
+      id: '1788454440620'
+      position:
+        x: 80
+        y: 282
+      positionAbsolute:
+        x: 80
+        y: 282
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        authorization:
+          config: null
+          type: no-auth
+        body:
+          data:
+          - id: key-value-51
+            key: ''
+            type: text
+            value: "{\n  \"older_than_seconds\": {{#env.ESCALATION_SECONDS#}}\n}"
+          type: json
+        desc: HTTP Request to escalate stale tickets
+        headers: ''
+        method: post
+        params: ''
+        retry_config:
+          max_retries: 3
+          retry_enabled: true
+          retry_interval: 100
+        selected: false
+        ssl_verify: false
+        timeout:
+          connect: 10
+          max_connect_timeout: 0
+          max_read_timeout: 0
+          max_write_timeout: 0
+        title: Request escalate
+        type: http-request
+        url: http://ticketing:8080/v1/tickets/escalate-stale
+        variables: []
+      height: 181
+      id: '1788454609353'
+      position:
+        x: 458
+        y: 269
+      positionAbsolute:
+        x: 458
+        y: 269
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 0
+    viewport:
+      x: 168.27272245509582
+      y: -48.31817906947179
+      zoom: 1
+  rag_pipeline_variables: []

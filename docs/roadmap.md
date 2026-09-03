@@ -55,8 +55,8 @@ recovery). `list-my-tickets` already matches the Studio-binding contract
 - **Verification gate:** contract tests at HTTP and MCP seams cover categories,
   user/agent roles, scoped list, create (`text` only),
   append for chat history, agent append with usage on a ticket (bumps `updated_at`, not
-  ticket text or status), masking, and HTTP escalate-stale (inactivity on
-  `updated_at`).
+  ticket text or status), masking, and HTTP escalate-stale (`open` tickets
+  older than the threshold on `created_at`).
 - **Learning checkpoint:** explain how one deep ticketing interface protects
   business invariants across two adapters.
 
@@ -153,7 +153,8 @@ recovery). `list-my-tickets` already matches the Studio-binding contract
   demo) that **only** HTTP-calls existing `POST /v1/tickets/escalate-stale`
   with a retry policy (counts TBD); plus negatives (including injection),
   restore/re-ingestion, security checks, and GreenMail acceptance with
-  local/fake model behavior. Escalate-stale already exists from Phase 3.
+  local/fake model behavior. Escalate-stale already exists from Phase 3
+  (cutoff is `created_at` while `open`).
   Dify does not own escalate rules.
 - **Verification gate:** every acceptance criterion in
   [requirements.md](requirements.md) has the required evidence: deterministic

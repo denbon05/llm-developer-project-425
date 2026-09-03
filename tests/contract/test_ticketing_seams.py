@@ -3,7 +3,7 @@
 Seams: MCP ``create-ticket`` / ``list-my-tickets`` / ``append-message``,
 and private HTTP ``POST /v1/tickets/escalate-stale``. Tests call ``mcp_*``
 directly (no MCP session). Helpers that write ORM fields poke statuses
-and ``updated_at`` the LLM path never sets.
+and timestamps the LLM path never sets.
 """
 
 from __future__ import annotations
@@ -52,6 +52,20 @@ async def _set_updated_at(
         ticket = await db_session.get(Ticket, ticket_id)
         assert ticket is not None
         ticket.updated_at = updated_at
+        await db_session.commit()
+    finally:
+        await db_session.close()
+
+
+async def _set_created_at(
+    ticketing_app: FastAPI, ticket_id: str, created_at: datetime
+) -> None:
+    """Backdate ``tickets.created_at`` (escalate cutoff; no MCP write)."""
+    db_session: AsyncSession = ticketing_app.state.db_session_factory()
+    try:
+        ticket = await db_session.get(Ticket, ticket_id)
+        assert ticket is not None
+        ticket.created_at = created_at
         await db_session.commit()
     finally:
         await db_session.close()
@@ -367,10 +381,10 @@ async def test_persistence_masks_pii_on_create(
         await db_session.close()
 
 
-async def test_append_delays_escalate_stale(
+async def test_append_does_not_delay_escalate_stale(
     ticketing_client: AsyncClient, ticketing_app: FastAPI
 ) -> None:
-    """Append refreshes activity; only the still-idle open ticket escalates."""
+    """Append does not keep an old-created open ticket from escalating."""
     aged_then_appended = await mcp_create_ticket(
         user_id="active-chat@example.test",
         category=TicketCategory.BUG,
@@ -382,8 +396,8 @@ async def test_append_delays_escalate_stale(
         text="no later append",
     )
     aged = datetime.now(UTC) - _STALE_AGE
-    await _set_updated_at(ticketing_app, aged_then_appended["ticket_id"], aged)
-    await _set_updated_at(ticketing_app, aged_idle["ticket_id"], aged)
+    await _set_created_at(ticketing_app, aged_then_appended["ticket_id"], aged)
+    await _set_created_at(ticketing_app, aged_idle["ticket_id"], aged)
 
     appended = await mcp_append_message(
         user_id="active-chat@example.test",
@@ -399,9 +413,11 @@ async def test_append_delays_escalate_stale(
     )
     assert response.status_code == 200, response.text
     payload = response.json()
-    # Talking ticket was refreshed; only the idle open ticket escalates.
-    assert payload["ticket_ids"] == [aged_idle["ticket_id"]]
-    assert payload["count"] == 1
+    assert payload["count"] == 2
+    assert set(payload["ticket_ids"]) == {
+        aged_then_appended["ticket_id"],
+        aged_idle["ticket_id"],
+    }
 
     db_session: AsyncSession = ticketing_app.state.db_session_factory()
     try:
@@ -409,7 +425,7 @@ async def test_append_delays_escalate_stale(
         idle = await db_session.get(Ticket, aged_idle["ticket_id"])
         assert talking is not None
         assert idle is not None
-        assert talking.status == TicketStatus.OPEN
+        assert talking.status == TicketStatus.ESCALATED
         assert talking.text == "still talking"
         assert idle.status == TicketStatus.ESCALATED
     finally:
@@ -419,7 +435,7 @@ async def test_append_delays_escalate_stale(
 async def test_escalate_stale_http_on_old_open_tickets(
     ticketing_client: AsyncClient, ticketing_app: FastAPI
 ) -> None:
-    """HTTP escalate is status-only: stale open → escalated, no messages."""
+    """Status-only: stale created_at open → escalated, no messages."""
     stale = await mcp_create_ticket(
         user_id="stale@example.test",
         category=TicketCategory.BUG,
@@ -430,11 +446,10 @@ async def test_escalate_stale_http_on_old_open_tickets(
         category=TicketCategory.ACCESS,
         text="new open",
     )
-    await _set_updated_at(
-        ticketing_app,
-        stale["ticket_id"],
-        datetime.now(UTC) - _STALE_AGE,
-    )
+    aged = datetime.now(UTC) - _STALE_AGE
+    await _set_created_at(ticketing_app, stale["ticket_id"], aged)
+    # Old updated_at alone must not escalate a recently created ticket.
+    await _set_updated_at(ticketing_app, fresh["ticket_id"], aged)
 
     response = await ticketing_client.post(
         "/v1/tickets/escalate-stale",
@@ -442,7 +457,7 @@ async def test_escalate_stale_http_on_old_open_tickets(
     )
     assert response.status_code == 200, response.text
     payload = response.json()
-    # Fresh ticket is under the cutoff; only the backdated open ticket moves.
+    # Fresh created_at is under the cutoff even if updated_at is old.
     assert payload["count"] == 1
     assert payload["ticket_ids"] == [stale["ticket_id"]]
 

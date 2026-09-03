@@ -9,8 +9,8 @@ This document defines observable v1 behavior. Domain terms are defined in
 v1 is the LLM email path. The **email gateway** owns IMAP/SMTP (GreenMail is
 the adapter). **Dify** is the brain: it answers from company knowledge or
 opens a ticket when it cannot. Ticket/KB persistence follows the table in
-FR-3. `open` tickets whose `updated_at` is older than the inactivity
-threshold (default 24h / `escalation_seconds`) become `escalated` via
+FR-3. `open` tickets whose `created_at` is older than the threshold
+(default 24h / `escalation_seconds`) become `escalated` via
 existing ticketing HTTP (status-only). Later employee mail still follows
 the non-`closed` path; the human/operator path remains out of scope.
 `answered` and `closed` stay in the schema unused. The employee cannot
@@ -69,7 +69,8 @@ ticket exists.
   answer LLM, before `create-ticket`) and emits one `TicketCategory`.
   Unknown category strings are `NOT_ELIGIBLE`. Skip the categorizer on
   KB-hit and follow-up paths. Escalate is option A (no human):
-  `POST /v1/tickets/escalate-stale` still flips idle `open` → `escalated`
+  `POST /v1/tickets/escalate-stale` still sets `open` tickets whose
+  `created_at` is older than the threshold to `escalated`
   (status-only). Later employee mail still uses the non-closed path above.
   `append-message` does not change status (ticket stays `escalated`). Do
   not reopen. There is no operator UI; the human/operator path remains
@@ -117,11 +118,12 @@ ticket exists.
   agent memory (no list-messages tool). Persistence uses VARCHAR for enum
   fields (ORM enums, not Postgres ENUM types); see architecture MVP schema.
 - **FR-7 — Ticket lifecycle.** A new ticket starts `open`. Escalation is
-  inactivity on `updated_at`, not calendar time from create that ignores
-  chat. Scheduled HTTP selects `status=open` with `updated_at` older than
+  calendar age from `created_at` while `status=open`, not inactivity on
+  `updated_at`. Scheduled HTTP selects `status=open` with `created_at` older than
   a threshold (`older_than_seconds`, default `Settings.escalation_seconds`
   / 86400) and sets `escalated` (status-only; no lifecycle messages).
-  Ongoing dialogue delays escalate. After `escalated`, later employee mail
+  Follow-up appends keep the ticket `open` but do not delay escalate.
+  After `escalated`, later employee mail
   still follows the non-closed path (KB + answer + two appends); status
   stays `escalated`. No reopen. `answered` and `closed` remain in
   the enum/schema; the LLM path does not write them. Tests or another
@@ -267,9 +269,10 @@ ticket exists.
    on remaining (non-intake) mail. The answer LLM does not invent
    `user_id` / `ticket_id`; workflow wiring supplies them.
 7. Escalation tests prove scheduled HTTP `POST /v1/tickets/escalate-stale`
-   moves `open` tickets with stale `updated_at` to `escalated` without
-   inserting messages. An append that refreshes `updated_at` keeps that
-   ticket `open` while a similarly aged idle ticket escalates. After
+   moves `open` tickets with stale `created_at` to `escalated` without
+   inserting messages. An append that refreshes `updated_at` does not keep
+   that ticket `open`; a ticket with recent `created_at` does not escalate
+   even if `updated_at` is old. After
    `escalated`, later employee mail still appends user + agent and still
    runs KB; status stays `escalated`. A Dify Schedule Trigger app (Phase 8)
    only calls this HTTP (retry policy, counts TBD); it does not encode
@@ -333,5 +336,5 @@ knowledge gap with no non-`closed` ticket → `create-ticket` plus first-user
 `append-message` then agent append; non-`closed` ticket → always append
 user+agent and still retrieve; toxicity / cheap injection-SQL / hello →
 gateway static SMTP, no Dify, no ticket; gateway Dify HTTP/outputs failure →
-error log, no SMTP, leave UNSEEN (no fail-open); `open` tickets inactive on
-`updated_at` escalate over HTTP.
+error log, no SMTP, leave UNSEEN (no fail-open); `open` tickets whose
+`created_at` is older than the threshold escalate over HTTP.

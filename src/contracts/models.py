@@ -20,7 +20,7 @@ class TicketSummary(BaseModel):
 
 
 class EscalateStaleRequest(BaseModel):
-    """Optional inactivity threshold in seconds."""
+    """Optional stale threshold in seconds."""
 
     older_than_seconds: int | None = Field(default=None, ge=0)
 

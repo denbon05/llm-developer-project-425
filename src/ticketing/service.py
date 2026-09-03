@@ -197,10 +197,11 @@ class TicketingService:
         tokens_out: int | None = None,
         latency_ms: int | None = None,
     ) -> AppendMessageResult:
-        """Record history and refresh activity time so escalate waits.
+        """Record history and refresh last-activity time.
 
         Inserts one message on an existing ticket and sets
-        ``ticket.updated_at``. Does not change ticket text or status. Required
+        ``ticket.updated_at``. Does not change ticket text or status, and
+        does not delay escalate (cutoff is ``created_at``). Required
         ``ticket_id`` must exist and match ``user_id`` or the call is
         ``NOT_FOUND``. Agent usage lands on agent rows only.
         """
@@ -233,9 +234,10 @@ class TicketingService:
         *,
         older_than_seconds: int | None = None,
     ) -> EscalateStaleResponse:
-        """Set ``open`` tickets past the inactivity threshold to ``escalated``.
+        """Set ``open`` tickets past the create-age threshold to ``escalated``.
 
-        Status-only: no extra message rows.
+        Cutoff is ``created_at`` while ``status=open``. Follow-up appends
+        do not delay this. Status-only: no extra message rows.
         """
         threshold = (
             older_than_seconds
@@ -247,7 +249,7 @@ class TicketingService:
             await self.db_session.scalars(
                 select(Ticket).where(
                     Ticket.status == TicketStatus.OPEN,
-                    Ticket.updated_at < cutoff,
+                    Ticket.created_at < cutoff,
                 )
             )
         ).all()

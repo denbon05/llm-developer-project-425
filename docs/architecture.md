@@ -5,8 +5,8 @@ outside Dify. The gateway depends on a small blocking HTTP contract, not
 Studio internals. Dify still orchestrates the LLM/KB/MCP graph.
 
 The design is an LLM-focused slice: email in; Dify routes per the ticket/KB
-table; `open` tickets whose `updated_at` is older than the inactivity
-threshold (default 24h / `escalation_seconds`) become `escalated`. Later
+table; `open` tickets whose `created_at` is older than the threshold
+(default 24h / `escalation_seconds`) become `escalated`. Later
 employee mail still uses the non-`closed` path (KB + answer + two appends).
 `answered` and `closed` remain in the schema unused here. The
 human/operator path remains out of scope.
@@ -73,10 +73,10 @@ human/operator path remains out of scope.
   the gateway builds Git URLs under a configured URL prefix.
 - **Lifecycle schedule** — the Escalate Dify app calls private HTTP
   `POST /v1/tickets/escalate-stale` (retry policy, counts TBD). Ticketing
-  selects `open` rows whose `updated_at` is older than the inactivity
-  threshold (default `Settings.escalation_seconds` / 86400) and sets
-  `escalated` (status-only). Append refreshes `updated_at`, so ongoing
-  dialogue delays escalate. After `escalated`, later employee mail still
+  selects `open` rows whose `created_at` is older than the threshold
+  (default `Settings.escalation_seconds` / 86400) and sets
+  `escalated` (status-only). Append refreshes `updated_at` (last activity)
+  but does not delay escalate. After `escalated`, later employee mail still
   uses the non-closed path; append does not change status. No reopen. The
   human/operator path remains out of scope. Hourly trigger is allowed for
   demo.
@@ -85,7 +85,8 @@ human/operator path remains out of scope.
 
 The **private HTTP adapter** is not a ticket resource API. It exposes
 `POST /v1/tickets/escalate-stale`.
-Escalate is status-only. A gateway Dify HTTP or outputs failure is not
+Escalate is status-only. The route logs the effective threshold, count,
+and ticket ids (no ticket text). A gateway Dify HTTP or outputs failure is not
 fail-open: the gateway logs the error, skips SMTP, and leaves the message
 UNSEEN for the next poll. Ticketing
 does not require a quarantine or outbox table.
@@ -102,7 +103,7 @@ argument on each call. Only Dify invokes these tools:
   `answered`; empty `statuses=[]` returns no rows; unknown strings are
   `NOT_ELIGIBLE`.
 - `append-message` inserts one `user` or `agent` row on an existing ticket
-  and bumps `tickets.updated_at` (activity) so escalate waits. Required:
+  and bumps `tickets.updated_at` (last activity; list order). Required:
   `ticket_id`, `user_id`, `text`, `role`. Load the ticket and deny
   with `NOT_FOUND` when missing or `ticket.user_id != user_id`. Agent rows
   may set usage (`model` / tokens / latency). Append does not change ticket
