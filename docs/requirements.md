@@ -144,10 +144,13 @@ ticket exists.
      `dify/apps/email_helpdesk.yml` is the architecture graph with
      Knowledge Retrieval (Weighted Score, local embeddings) and live
      Yandex on the LLM and classifier (not a Start→End echo).
-  2. Escalate — Schedule Trigger (daily / 24h; hourly allowed for demo)
-     that **only** HTTP-calls `POST /v1/tickets/escalate-stale`, with a
-     retry policy (counts TBD). No escalate logic in Dify. User Input vs
-     Trigger are different start types; keep two apps.
+  2. `escalate_stale` — Schedule Trigger (committed export: every minute)
+     that **only** HTTP-calls `POST /v1/tickets/escalate-stale`. JSON may
+     include `older_than_seconds` from the app env (`ESCALATION_SECONDS`,
+     30 in the export). HTTP Request retry: 3 attempts, 100ms interval.
+     No escalate logic in Dify (no age IF/ELSE). User Input vs Trigger
+     are different start types; keep two apps. Committed export
+     `dify/apps/escalate_stale.yml`.
   Apps are authored in the UI, then exported as secret-free DSL under
   `dify/apps/` (one export per Studio App). The gateway depends on this small
   HTTP contract, not Studio internals (console session URLs). Provider-specific
@@ -156,7 +159,8 @@ ticket exists.
   private shared network: `dify/compose.yml` (Dify platform) and root
   `compose.yml` (application stack), wrapped by Make targets such as
   `make dify-stack-up`. Use persistent volumes and reproducible migrations,
-  restore procedures, and knowledge re-ingestion. Automation is limited to
+  restore procedures, and knowledge re-ingestion (see [setup.md](setup.md)).
+  Automation is limited to
   clear Compose, Make, and documentation entry points rather than Ansible.
   Document the one-time Dify administrator and Yandex-provider setup that
   cannot be automated safely.
@@ -274,9 +278,9 @@ ticket exists.
    that ticket `open`; a ticket with recent `created_at` does not escalate
    even if `updated_at` is old. After
    `escalated`, later employee mail still appends user + agent and still
-   runs KB; status stays `escalated`. A Dify Schedule Trigger app (Phase 8)
-   only calls this HTTP (retry policy, counts TBD); it does not encode
-   escalate rules. The human/operator path remains out of scope.
+   runs KB; status stays `escalated`. `dify/apps/escalate_stale.yml` only
+   calls this HTTP (retry 3 × 100ms); it does not encode escalate rules.
+   The human/operator path remains out of scope.
 8. Privacy tests show required PII absent from Dify-bound content, durable
    ticket/message **text**, and application logs/errors, and that remaining
    matches use the SEC-2 mask shapes. The documented business-store
@@ -303,11 +307,12 @@ ticket exists.
     verify them.
 14. Committed Dify App exports under `dify/apps/` contain no secrets and are
     demonstrably derived after the UI-authored workflow slices.
-15. Submission evidence for the course substitute stack is a Dify workflow run
-    and blocking-response usage/run metadata (SSE not required), ticket status
-    observed through private interfaces (plus the permitted direct privacy
-    audit), and a deterministic GreenMail end-to-end transcript — not YDB or
-    Yandex-managed application runtimes.
+15. Live/opt-in evidence for the course substitute stack is a Dify workflow
+    run and blocking-response usage/run metadata (SSE not required), ticket
+    status observed through private interfaces (plus the permitted direct
+    privacy audit), and GreenMail against the live graph — not YDB or
+    Yandex-managed application runtimes. Merge-gate stays fake Dify; there
+    is no separate submission pack.
 
 ## Exclusions
 
@@ -324,12 +329,14 @@ ticket exists.
 - input-size / per-sender rate limits as a current gate (deferred)
 - Ansible or other infrastructure orchestration beyond minimal Compose/Make
 
-## Provisional parameters
+## Recorded parameters
 
-Toxicity word-list contents, cheap injection/SQL phrases (small Phase 7
-list), escalation intervals, and escalate HTTP retry counts will be
-calibrated at their phase gates. Recorded retrieval defaults live in
-`tests/eval/golden_retrieval.json`. Until then, the
+Toxicity word-list contents and cheap injection/SQL phrases were fixed in
+Phase 7. Phase 8 recorded: Schedule Trigger every minute; Dify app env
+`ESCALATION_SECONDS=30` sent as `older_than_seconds`; HTTP Request retry
+3 × 100ms. Ticketing `Settings.escalation_seconds` remains 86400 when the
+HTTP body omits the field. Recorded retrieval defaults live in
+`tests/eval/golden_retrieval.json`. The
 required outcomes above are normative:
 KB hit with no non-`closed` ticket → email only (no ticket, no `messages`);
 knowledge gap with no non-`closed` ticket → `create-ticket` plus first-user

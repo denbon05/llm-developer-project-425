@@ -47,9 +47,11 @@ human/operator path remains out of scope.
     categorizer on KB-hit and follow-up paths. `create-ticket` must not
     run in parallel with append (needs `ticket_id`). Toxicity, cheap
     injection/SQL phrases, and hello stay gateway regex.
-  - Escalate — Schedule Trigger (daily / 24h; hourly allowed for demo)
-    that **only** HTTP-calls `POST /v1/tickets/escalate-stale`, with a
-    retry policy (counts TBD). No escalate rules in Dify.
+  - `escalate_stale` — Schedule Trigger (committed export: every minute)
+    that **only** HTTP-calls `POST /v1/tickets/escalate-stale`. JSON may
+    include `older_than_seconds` from the app env (`ESCALATION_SECONDS`,
+    30 in the export). HTTP Request retry: 3 attempts, 100ms interval.
+    No escalate rules in Dify.
 - **Ticketing module** — the sole authority for tickets, messages, escalation
   validity, and employee scope. It derives employee scope from the `user_id`
   tool argument (synthetic sender email) on `tickets.user_id`. MCP tools are
@@ -71,15 +73,16 @@ human/operator path remains out of scope.
   [`tests/eval/golden_retrieval.json`](../tests/eval/golden_retrieval.json).
   End `source_filenames` are `knowledge_base/` filenames from retrieval;
   the gateway builds Git URLs under a configured URL prefix.
-- **Lifecycle schedule** — the Escalate Dify app calls private HTTP
-  `POST /v1/tickets/escalate-stale` (retry policy, counts TBD). Ticketing
+- **Lifecycle schedule** — `escalate_stale` calls private HTTP
+  `POST /v1/tickets/escalate-stale` (retry 3 × 100ms). Ticketing
   selects `open` rows whose `created_at` is older than the threshold
-  (default `Settings.escalation_seconds` / 86400) and sets
+  (`older_than_seconds` when the body sends it, else
+  `Settings.escalation_seconds` / 86400) and sets
   `escalated` (status-only). Append refreshes `updated_at` (last activity)
   but does not delay escalate. After `escalated`, later employee mail still
   uses the non-closed path; append does not change status. No reopen. The
-  human/operator path remains out of scope. Hourly trigger is allowed for
-  demo.
+  human/operator path remains out of scope. The committed trigger runs
+  every minute; the export sends `older_than_seconds=30`.
 
 ## Conceptual application contracts
 
@@ -170,8 +173,8 @@ terminals). Secret-free Dify App DSL exports live under `dify/apps/` —
 `email_helpdesk.yml` is the graph above with Knowledge Retrieval
 (Weighted Score, local embeddings) and live Yandex on the answer LLM
 and classifier (MCP tool nodes, IF/ELSE, Ticket ID and Reply aggregators, End
-`reply_text` / `ticket_id` / `source_filenames`). The Escalate app is
-Phase 8.
+`reply_text` / `ticket_id` / `source_filenames`). `escalate_stale.yml` is
+Schedule Trigger → HTTP `POST /v1/tickets/escalate-stale`.
 
 ## Minimal Dify contract
 
@@ -435,7 +438,8 @@ human/operator path remains out of scope.
 ├── dify/
 │   ├── compose.yml              # Dify platform stack
 │   └── apps/                    # one secret-free DSL export per Dify App
-│       └── email_helpdesk.yml   # email graph (Weighted Score KR; live Yandex)
+│       ├── email_helpdesk.yml   # email graph (Weighted Score KR; live Yandex)
+│       └── escalate_stale.yml   # Schedule Trigger → HTTP escalate-stale
 ├── src/
 │   ├── contracts/
 │   ├── privacy/
@@ -445,7 +449,6 @@ human/operator path remains out of scope.
 │   ├── unit/
 │   ├── contract/
 │   ├── integration/
-│   ├── e2e/
 │   └── eval/                    # golden catalog + opt-in live retrieval
 ├── scripts/
 ├── compose.yml                  # application stack

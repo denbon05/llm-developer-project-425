@@ -66,17 +66,29 @@ Pins, ports, and GreenMail accounts are in the tables below.
    aggregators, End `reply_text` / `ticket_id`). See
    [dify/apps/README.md](../dify/apps/README.md).
 
-7. **App API key.** Workflow sidebar **API Access** → Create API Key →
+7. **Escalate app.** **Create** → **Import DSL** →
+   `dify/apps/escalate_stale.yml`. This is a **Schedule Trigger** app, not
+   User Input. Graph: trigger → HTTP POST
+   `http://ticketing:8080/v1/tickets/escalate-stale` (same `ticketing`
+   allowlist as MCP; in-network, not `localhost:18080`). App env
+   `ESCALATION_SECONDS` is **30** and is sent as JSON
+   `older_than_seconds`. Ticketing still owns the cutoff (`open` +
+   `created_at`). HTTP Request retry: 3 attempts, 100ms interval. Publish
+   and enable the trigger. No gateway API key. Re-export secret-free DSL
+   to `dify/apps/escalate_stale.yml` only when the graph changed. The
+   committed cadence is every minute / 30s (local demo).
+
+8. **App API key.** Workflow sidebar **API Access** → Create API Key →
    gitignored `.env` as `DIFY_EMAIL_HELPDESK_API_KEY`. Gateway uses
    in-network `http://nginx:80/v1/workflows/run` (host:
    `http://localhost:13080/v1/workflows/run`).
 
-8. **Mail.** Use a real client against GreenMail, not Dify. As
+9. **Mail.** Use a real client against GreenMail, not Dify. As
    `employee1@example.test`, send **To:** `support@example.test`. Confirm
    `email-gateway` polls it and the employee inbox gets the workflow
    reply. Accounts: [GreenMail](#greenmail).
 
-9. **Ollama embedding provider (Studio, one-time).** Manual steps. **Integrations → Model Provider → Ollama**. Add a
+10. **Ollama embedding provider (Studio, one-time).** Manual steps. **Integrations → Model Provider → Ollama**. Add a
    **Text Embedding** model (not an LLM):
    - Model name: `OLLAMA_EMBEDDING_MODEL` (`ibm/granite-embedding:30m`)
    - Base URL: `OLLAMA_BASE_URL` (`http://ollama:11434`). Studio runs in
@@ -84,7 +96,7 @@ Pins, ports, and GreenMail accounts are in the tables below.
    - Context size: **512** (this model's window). Leave the default
      and chunks get truncated or score badly.
 
-10. **Knowledge dataset (Studio, one-time).** **Knowledge → Create →
+11. **Knowledge dataset (Studio, one-time).** **Knowledge → Create →
     Create a ready-to-use knowledge base.** Name it `employee-helpdesk`.
     Import from file the eight topic pages under `knowledge_base/`
     (skip `README.md`). Keep those filenames.
@@ -121,7 +133,7 @@ Pins, ports, and GreenMail accounts are in the tables below.
     prompt or a Sources template. Publish. Re-export secret-free DSL to
     `dify/apps/email_helpdesk.yml` only when the graph changed.
 
-11. **Knowledge Service API key and retrieval evaluation.** In Dify,
+12. **Knowledge Service API key and retrieval evaluation.** In Dify,
     open **Knowledge**, select **Service API** in the top-right, and
     create an API key. A knowledge key can access every knowledge base
     visible to its Dify account, so keep it only in the gitignored root
@@ -154,6 +166,20 @@ When wiring Studio tool nodes: Dify 1.16 MCP array `statuses` on
 defaults to open/escalated/answered) or enter a **constant array** of
 those three strings. Do not pass `[]` (returns no rows). `user_id` is a
 variable from Start `user_email`.
+
+## Restart and re-ingest
+
+Ordinary stop/start (`make app-stack-down` / `make dify-stack-down`, then
+the matching `*-up`) keeps named volumes: helpdesk Postgres
+(tickets/messages) and Weaviate. Do not add `-v` unless you intend to
+wipe data.
+
+To rebuild retrieval from Git: in Studio, remove the documents on
+`employee-helpdesk` (or recreate that dataset), import the eight topic
+pages under `knowledge_base/` again (skip `README.md`; same filenames and
+chunk settings as step 11), rebind the Knowledge Retrieval node if the
+dataset is new, then `make eval`. Git remains canonical; Weaviate is
+derived.
 
 ## Pins
 
@@ -199,10 +225,12 @@ then `uv sync --all-extras`. App-stack Compose interpolates `.env` with
 no `:-` fallbacks. Compose uses `dify/.env` twice: `--env-file` for YAML
 interpolation and service `env_file` for container injection.
 `DATABASE_URL` in `.env` is for host tools; Compose injects the
-in-network DSN into ticketing. Override `ESCALATION_SECONDS` in `.env`
-only if you need a timer other than 86400. The root
-`DIFY_DATASETS_API_KEY` is for the opt-in host-side retrieval evaluator;
-it is not injected into application containers. Keep
+in-network DSN into ticketing. Ticketing `Settings.escalation_seconds`
+defaults to 86400 when the escalate HTTP body omits `older_than_seconds`.
+The Schedule Trigger app sends `older_than_seconds` from its own Studio
+env `ESCALATION_SECONDS` (30 in `dify/apps/escalate_stale.yml`), not from
+root `.env`. The root `DIFY_DATASETS_API_KEY` is for the opt-in host-side
+retrieval evaluator; it is not injected into application containers. Keep
 `REDIS_SOCKET_TIMEOUT=3600` (already in the Dify example) so Studio does
 not stall on “Syncing data”.
 

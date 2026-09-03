@@ -6,9 +6,8 @@ requirements, and architecture before the next phase starts. No implementation
 agent owns the whole system. Each phase updates affected documentation and
 ends with a verification gate and a short learning checkpoint.
 
-Phases 1–7 are historical (done). Current work is Phase 8 (lifecycle and
-recovery). `list-my-tickets` already matches the Studio-binding contract
-(`text`, optional `statuses`).
+Phases 1–8 are historical (done). `list-my-tickets` already matches the
+Studio-binding contract (`text`, optional `statuses`).
 
 ## Phase 1 — Fix the design
 
@@ -149,16 +148,21 @@ recovery). `list-my-tickets` already matches the Studio-binding contract
 
 - **Owner:** bounded lifecycle/verification agent, with final coordinating
   review.
-- **Scope:** second Dify app (Schedule Trigger, daily / 24h, hourly for
-  demo) that **only** HTTP-calls existing `POST /v1/tickets/escalate-stale`
-  with a retry policy (counts TBD); plus negatives (including injection),
-  restore/re-ingestion, security checks, and GreenMail acceptance with
-  local/fake model behavior. Escalate-stale already exists from Phase 3
-  (cutoff is `created_at` while `open`).
+- **Scope:** second Dify app (Schedule Trigger) that **only** HTTP-calls
+  existing `POST /v1/tickets/escalate-stale` with an HTTP retry policy;
+  plus negatives (including injection), restore/re-ingestion, security
+  checks, and GreenMail with local/fake model behavior. Escalate-stale
+  already exists from Phase 3 (cutoff is `created_at` while `open`).
   Dify does not own escalate rules.
-- **Verification gate:** every acceptance criterion in
-  [requirements.md](requirements.md) has the required evidence: deterministic
-  criteria run locally, while live-model criteria run opt-in and are reported
-  separately rather than inferred from fakes.
-- **Learning checkpoint:** present the end-to-end trust story, failure
-  semantics, recovery procedure, remaining limitations, and required evidence.
+- **Verification gate:** done. Committed `dify/apps/escalate_stale.yml` is
+  Schedule Trigger (every minute) → HTTP POST `/v1/tickets/escalate-stale`
+  with retry (3 × 100ms). App env `ESCALATION_SECONDS=30` is passed as
+  `older_than_seconds`; cutoff rules stay in ticketing. Merge-gate stays
+  **fake Dify**. Live GreenMail, live Yandex, and `make eval` remain
+  opt-in (no separate submission pack). Restore/re-ingest is the
+  documented Studio/Git procedure in [setup.md](setup.md).
+- **Learning checkpoint:** escalate is status-only HTTP from a second app;
+  Dify does not decide who is stale. Gateway Dify failure stays no-SMTP /
+  UNSEEN. Git is canonical knowledge; Weaviate is rebuilt from
+  `knowledge_base/`. Remaining limits: no operator path; local schedule is
+  every minute / 30s; live models stay opt-in.

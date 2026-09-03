@@ -27,13 +27,15 @@ and are unused here.
 
 ## Status
 
-**Phase 7** is done: `dify/apps/email_helpdesk.yml` is the architecture graph
-with Knowledge Retrieval (`employee-helpdesk`, Weighted Score) and live
-Yandex on the answer LLM and classifiers (intent SML + categorizer SML).
+**Phases 1–8** are done. `dify/apps/email_helpdesk.yml` is the architecture
+graph with Knowledge Retrieval (`employee-helpdesk`, Weighted Score) and live
+Yandex on the answer LLM and classifiers. `dify/apps/escalate_stale.yml` is
+the Schedule Trigger that HTTP-calls `POST /v1/tickets/escalate-stale`.
 Canonical Markdown is in [`knowledge_base/`](knowledge_base/); golden catalog
 and opt-in `make eval` are in [`tests/eval/`](tests/eval/). Merge-gate /
-`make test` still uses **fake Dify** (no paid models). **Phase 8** is current
-(lifecycle and recovery). Platform setup: [docs/setup.md](docs/setup.md).
+`make test` still uses **fake Dify** (no paid models). Live Yandex, live
+GreenMail, and `make eval` stay opt-in. Platform setup:
+[docs/setup.md](docs/setup.md).
 
 Host tools (local run and tests): `uv`, plus Docker Desktop (Compose v2) on `PATH`.
 
