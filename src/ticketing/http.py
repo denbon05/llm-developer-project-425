@@ -91,8 +91,8 @@ async def escalate_stale(
     )
     result = await service.escalate_stale(older_than_seconds=threshold)
     logger.info(
-        "escalate-stale finished count=%s ticket_ids=%s",
+        "escalate-stale finished count=%s ids=%s",
         result.count,
-        result.ticket_ids,
+        [ticket.ticket_id for ticket in result.tickets],
     )
     return result

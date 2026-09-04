@@ -7,10 +7,11 @@ This document defines observable v1 behavior. Domain terms are defined in
 ## Scope / boundaries
 
 v1 is the LLM email path. Ticket/KB persistence follows FR-3. Escalate
-follows FR-7. The human/operator path remains out of scope. `answered` and
-`closed` stay in the schema unused by the LLM path. The employee cannot
-force ticket creation when knowledge can answer and no non-`closed` ticket
-exists.
+follows FR-7. Escalation digest email is in v1 (FR-9); there is no
+operator UI, inbound operator workflow, or modeled human replies.
+`answered` and `closed` stay in the schema unused by the LLM path. The
+employee cannot force ticket creation when knowledge can answer and no
+non-`closed` ticket exists.
 
 ## Functional requirements
 
@@ -20,7 +21,23 @@ exists.
   for IMAP) and sends through generic SMTP. It processes plain text and
   sanitized HTML in English and ignores attachment contents. The default
   poll interval is one minute; it is configurable and may be shortened in
-  tests.
+  tests. Beside the IMAP loop, the gateway process exposes a **private
+  HTTP listener**: `POST /v1/emails/send` at
+  `http://email-gateway:8080/v1/emails/send`. JSON is `{subject,
+  tickets}` — no `to` / recipient field. `subject` is required and
+  trusted (Dify Template or constant). The gateway formats the operator
+  mail from `tickets` (optional flat one-ticket fields `ticket_id`,
+  `user_id`, `category`, `created_at`, `text`). Do not send an LLM
+  `body`. Recipient is env
+  `OPERATOR_EMAIL` (not a secret) and **must not** equal the IMAP intake
+  mailbox (`IMAP_USER` / `support@example.test`); digest to the polled
+  inbox would be treated as employee mail. Local GreenMail uses a distinct
+  account `operator@example.test`. From/SMTP auth uses existing
+  `SMTP_USER`. Invalid or missing digest (no `tickets`, no flat ticket
+  fields): no SMTP, error to the caller.
+  Digest SMTP is best-effort at-least-once (FR-8) and is **not** IMAP
+  `\Seen` / employee-reply threading. SEC-4 “live mail-session recipient”
+  applies to **employee replies only**; digest uses `OPERATOR_EMAIL`.
 - **FR-2 — Safe intake.** Size and per-sender rate limits are deferred. After
   normalization and before any Dify call, the gateway applies one-way PII
   masking (`src/privacy`) so Studio logs never see raw PII. Ordered
@@ -96,12 +113,23 @@ exists.
   bumps `tickets.updated_at`; it does not change ticket text or status.
   Agent rows may include usage. Return is `message_id` and `ticket_id`.
   Private HTTP is scheduled `POST /v1/tickets/escalate-stale` (private
-  network, no shared secret), not a resource REST API. v1 persists a
-  minimal schema (`tickets` and `messages`) in application PostgreSQL
+  network, no shared secret), not a resource REST API. The JSON is
+  `count` and `tickets`: the same rows just escalated, each with at
+  least `ticket_id`, `user_id` (MVP synthetic sender email — same SEC-4
+  exception as stored `tickets.user_id`; the operator needs who),
+  `category`, `status` (now `escalated`), `text` (already masked; the
+  same store humans read), and `created_at`. Empty run: `count` 0,
+  empty `tickets`. Logs must not contain ticket text (SEC-5): log
+  threshold, count, ids only. Ticket `text` in this HTTP response is
+  required for the operator digest; it is not a log. Do not add a separate
+  list-stale HTTP or MCP tool; one POST mutates and returns the payload.
+  Dify calls both this route and gateway `POST /v1/emails/send`.
+  The gateway does not call MCP and does not decide escalate. v1 persists
+  a minimal schema (`tickets` and `messages`) in application PostgreSQL
   (`helpdesk-db`), separate from Dify's PostgreSQL. SMTP send/receive
-  stays in the email gateway; v1 does not use an application outbox table.
-  Only Dify calls MCP; the gateway does not. The answer LLM does not
-  invent `user_id` / `ticket_id`; workflow wiring supplies them.
+  stays in the email gateway; v1 does not use an application outbox
+  table. Only Dify calls MCP. The answer LLM does not invent `user_id` /
+  `ticket_id`; workflow wiring supplies them.
 - **FR-6 — Ticket model.** Message roles, categories, statuses, and domain
   error codes are the `contracts.enums` StrEnums (`MessageRole`,
   `TicketCategory`, `TicketStatus`, `DomainErrorCode`); see that module for
@@ -118,12 +146,14 @@ exists.
   `updated_at`. Scheduled HTTP selects `status=open` with `created_at`
   older than a threshold (`older_than_seconds`, default
   `Settings.escalation_seconds` / 86400) and sets `escalated`
-  (status-only; no lifecycle messages). Follow-up appends keep the ticket
-  `open` but do not delay escalate. After `escalated`, later employee mail
-  still follows the non-closed path in FR-3 (KB + answer + two appends);
-  status stays `escalated`. No reopen. `answered` and `closed` remain in
-  the enum/schema; the LLM path does not write them. Tests or another
-  system may poke those statuses. Dify does not own escalate rules.
+  (status-only; no lifecycle messages). The JSON returns those rows for
+  the digest (FR-5); Dify must **not** encode age/cutoff IF/ELSE.
+  Follow-up appends keep the ticket `open` but do not delay escalate.
+  After `escalated`, later employee mail still follows the non-closed
+  path in FR-3 (KB + answer + two appends); status stays `escalated`. No
+  reopen. `answered` and `closed` remain in the enum/schema; the LLM path
+  does not write them. Tests or another system may poke those statuses.
+  Dify does not own escalate rules.
 - **FR-8 — Delivery semantics.** Ticket/message effects are best-effort and
   at-least-once. The gateway may mark an inbound message processed (IMAP
   `\Seen`) after successful SMTP of an intake or workflow reply. A failed
@@ -131,19 +161,32 @@ exists.
   repeat mutations. Outbound SMTP is gateway-owned and at-least-once: a
   crash after send but before `\Seen` can duplicate the email on the next
   poll. Documented SMTP duplicate window: **one poll interval** (default
-  60s) **plus** the blocking Dify wait. No outbox table. Receiver-visible
-  exactly-once is not claimed.
+  60s) **plus** the blocking Dify wait. Digest SMTP is also
+  gateway-owned and at-least-once. Ticketing commit happens **before**
+  digest send: if SMTP fails, tickets stay `escalated` and
+  **will not** appear in a later digest (lost digest; no rollback; no
+  spam loop). Dify retry on the gateway HTTP can duplicate the digest.
+  Exactly-once is not claimed. Digest send is not IMAP `\Seen`. No
+  outbox table.
 - **FR-9 — Dify lifecycle.** Two Workflow-type Studio Apps:
   1. `email_helpdesk` — User Input start; gateway blocking Service API
      `POST …/v1/workflows/run`. Committed export
      `dify/apps/email_helpdesk.yml`.
-  2. `escalate_stale` — Schedule Trigger that **only** HTTP-calls
-     `POST /v1/tickets/escalate-stale`. JSON may include
-     `older_than_seconds` from the app env (`ESCALATION_SECONDS`). No
-     escalate logic in Dify (no age IF/ELSE). User Input vs Trigger are
-     different start types; keep two apps. Committed export
-     `dify/apps/escalate_stale.yml`. Local cadence and HTTP retry:
-     Recorded parameters.
+  2. `escalate_stale` — Schedule Trigger. Committed export
+     `dify/apps/escalate_stale.yml`. JSON may include
+     `older_than_seconds` from the app env (`ESCALATION_SECONDS`). Graph:
+     1. Schedule Trigger (every minute; `ESCALATION_SECONDS=30` as
+        `older_than_seconds`; HTTP retry 3 × 100ms on the ticketing call).
+     2. HTTP `POST /v1/tickets/escalate-stale`.
+     3. Parse the ticketing JSON (`count`, `tickets`).
+     4. IF `count` is 0 → End. No digest SMTP.
+     5. HTTP POST `http://email-gateway:8080/v1/emails/send` with
+        JSON `{subject, tickets}` from Parse body. No recipient. `subject`
+        is trusted (Dify Template or constant). The gateway formats the
+        mail; this app has no digest LLM.
+     No escalate logic in Dify (no age IF/ELSE). User Input vs Trigger
+     are different start types; keep two apps. Local cadence and HTTP
+     retry: Recorded parameters.
   Apps are authored in the UI, then exported as secret-free DSL under
   `dify/apps/` (one export per Studio App). The gateway depends on this
   small HTTP contract, not Studio internals (console session URLs).
@@ -183,22 +226,25 @@ exists.
   This is not an allowlist and is not production identity authentication;
   a caller who can invoke MCP can pass any synthetic email.
 - **SEC-4 — Delivery identity.** The email gateway keeps the live SMTP/IMAP
-  recipient from the current mail session when sending replies. v1 does
-  not persist an encrypted outbox recipient table. The sole intentional
-  raw-PII exception in application-controlled business persistence is MVP
-  `tickets.user_id` (synthetic sender email). Ticket/message **text** and
-  logs remain masked.
+  recipient from the current mail session when sending **employee
+  replies**. Digest mail uses env `OPERATOR_EMAIL`, not a body recipient
+  and not the live session. v1 does not persist an encrypted outbox
+  recipient table. The sole intentional raw-PII exception in
+  application-controlled business persistence is MVP `tickets.user_id`
+  (synthetic sender email). Ticket/message **text** and logs remain
+  masked.
 - **SEC-5 — Logs and errors.** Application JSON logs and error payloads
-  contain no raw message, subject, recipient, retrieved passage, or other
-  raw content. They may contain bounded metadata, opaque correlation
-  identifiers, and masked values.
+  contain no raw message, subject, recipient, retrieved passage, digest
+  body/subject/recipient, or other raw content. They may contain bounded
+  metadata, opaque correlation identifiers, and masked values.
 - **SEC-6 — Trust.** Employee input, email headers and HTML, retrieved text,
-  and model output are untrusted data. Governing instructions, interface
-  schemas, authorized tool definitions, and repository-controlled citation
-  mappings are trusted. Untrusted text must not be promoted into a trusted
-  instruction context. Malicious instructions in retrieved knowledge
-  cannot change routing, tool authorization, or repository-controlled
-  citation filenames.
+  model output, and ticket `text` in escalate-stale / digest payloads are
+  untrusted data. Governing instructions, interface schemas, authorized
+  tool definitions, repository-controlled citation mappings, digest
+  `subject` (Template or constant), and `OPERATOR_EMAIL` are trusted.
+  Untrusted text must not be promoted into a trusted instruction context.
+  Malicious instructions in retrieved knowledge cannot change routing,
+  tool authorization, or repository-controlled citation filenames.
 - **SEC-7 — Access and secrets.** Runtime interfaces remain on a private
   LAN/VPN and the shared container network. MCP tools take `user_id` as a
   tool argument. Secrets stay out of Git and exported Dify DSL. The
@@ -218,7 +264,9 @@ exists.
   `record-usage` HTTP route. Persisted token counts must match the
   corresponding Dify answer-generator usage within 10% (live/opt-in).
 - Logs must make correlation, routing outcome, retries, ticket
-  transitions, and delivery outcome diagnosable without raw content.
+  transitions, delivery outcome, and digest send success/failure
+  diagnosable without raw content (escalate already logs count and
+  ticket ids).
 - Merge-gate / `make test` uses a **fake** of the Start/End contract (no
   paid models, no live Studio). It does use local GreenMail via
   Testcontainers. Fake tests do not verify live Studio, Yandex, or
@@ -226,8 +274,9 @@ exists.
 
 ## Exclusions
 
-- operator UI, modeled human replies, and auto-close (the human/operator
-  path after `escalated` remains out of scope; the LLM still replies)
+- operator UI, inbound operator workflow / modeled human replies, and
+  auto-close (escalation digest email is in v1; the LLM still replies on
+  the employee path)
 - provider comparison, runtime switching, and failover
 - Yandex-managed agent/workflow/database runtime services beyond Yandex
   Cloud AI Studio foundation-model endpoints
@@ -244,6 +293,9 @@ exists.
 
 Local demo: Schedule Trigger every minute; Dify app env
 `ESCALATION_SECONDS=30` sent as `older_than_seconds`; HTTP Request retry
-3 × 100ms. Recorded retrieval defaults live in
+3 × 100ms on the ticketing `escalate-stale` call. Do not copy that retry
+onto `send` (duplicate-digest risk; FR-8).
+`OPERATOR_EMAIL=operator@example.test` for local GreenMail.
+Recorded retrieval defaults live in
 `tests/eval/golden_retrieval.json`. Live Yandex, live GreenMail, and
 `make eval` stay opt-in.

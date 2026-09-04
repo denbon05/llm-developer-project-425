@@ -414,10 +414,21 @@ async def test_append_does_not_delay_escalate_stale(
     assert response.status_code == 200, response.text
     payload = response.json()
     assert payload["count"] == 2
-    assert set(payload["ticket_ids"]) == {
+    tickets_by_id = {row["ticket_id"]: row for row in payload["tickets"]}
+    assert set(tickets_by_id) == {
         aged_then_appended["ticket_id"],
         aged_idle["ticket_id"],
     }
+    talking_row = tickets_by_id[aged_then_appended["ticket_id"]]
+    assert talking_row["user_id"] == "active-chat@example.test"
+    assert talking_row["category"] == TicketCategory.BUG
+    assert talking_row["status"] == TicketStatus.ESCALATED
+    assert talking_row["text"] == "still talking"
+    idle_row = tickets_by_id[aged_idle["ticket_id"]]
+    assert idle_row["user_id"] == "idle@example.test"
+    assert idle_row["category"] == TicketCategory.ACCESS
+    assert idle_row["status"] == TicketStatus.ESCALATED
+    assert idle_row["text"] == "no later append"
 
     db_session: AsyncSession = ticketing_app.state.db_session_factory()
     try:
@@ -459,7 +470,13 @@ async def test_escalate_stale_http_on_old_open_tickets(
     payload = response.json()
     # Fresh created_at is under the cutoff even if updated_at is old.
     assert payload["count"] == 1
-    assert payload["ticket_ids"] == [stale["ticket_id"]]
+    assert len(payload["tickets"]) == 1
+    stale_row = payload["tickets"][0]
+    assert stale_row["ticket_id"] == stale["ticket_id"]
+    assert stale_row["user_id"] == "stale@example.test"
+    assert stale_row["category"] == TicketCategory.BUG
+    assert stale_row["status"] == TicketStatus.ESCALATED
+    assert stale_row["text"] == "old open"
 
     db_session: AsyncSession = ticketing_app.state.db_session_factory()
     try:

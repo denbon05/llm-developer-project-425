@@ -19,6 +19,17 @@ class TicketSummary(BaseModel):
     updated_at: datetime
 
 
+class EscalatedTicket(BaseModel):
+    """Ticket row just moved from ``open`` to ``escalated``."""
+
+    ticket_id: str
+    user_id: str
+    category: TicketCategory
+    status: TicketStatus
+    text: str
+    created_at: datetime
+
+
 class EscalateStaleRequest(BaseModel):
     """Optional stale threshold in seconds."""
 
@@ -28,5 +39,5 @@ class EscalateStaleRequest(BaseModel):
 class EscalateStaleResponse(BaseModel):
     """Tickets moved from ``open`` to ``escalated`` in this call."""
 
-    ticket_ids: list[str]
     count: int
+    tickets: list[EscalatedTicket]

@@ -7,6 +7,7 @@ from contracts.enums import (
     TicketStatus,
 )
 from contracts.models import (
+    EscalatedTicket,
     EscalateStaleRequest,
     EscalateStaleResponse,
     TicketSummary,
@@ -14,6 +15,7 @@ from contracts.models import (
 
 __all__ = [
     "DomainErrorCode",
+    "EscalatedTicket",
     "EscalateStaleRequest",
     "EscalateStaleResponse",
     "MessageRole",

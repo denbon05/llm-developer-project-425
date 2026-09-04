@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from http import HTTPStatus
 from typing import Any
 
 import httpx
 
-from email_gateway import constants
 from email_gateway.config import Settings, build_authorization_header
 from email_gateway.outputs import OutputsError, ValidatedOutputs, parse_outputs
 
@@ -92,16 +92,16 @@ class Client:
                 ok=False,
                 outputs=None,
                 workflow_run_id=None,
-                fail_reason=constants.FAIL_HTTP_ERROR,
+                fail_reason="http_error",
                 exc_type=type(exc).__name__,
             )
-        if response.status_code >= constants.HTTP_ERROR_STATUS_MIN:
+        if response.status_code >= HTTPStatus.BAD_REQUEST:
             error_code = _safe_dify_error_code(_json_object(response))
             return CallResult(
                 ok=False,
                 outputs=None,
                 workflow_run_id=None,
-                fail_reason=constants.FAIL_HTTP_STATUS,
+                fail_reason="http_status",
                 http_status=response.status_code,
                 dify_error_code=error_code,
             )
@@ -113,7 +113,7 @@ class Client:
                 ok=False,
                 outputs=None,
                 workflow_run_id=None,
-                fail_reason=constants.FAIL_BAD_JSON,
+                fail_reason="bad_json",
                 http_status=response.status_code,
                 exc_type=type(exc).__name__,
             )
@@ -130,7 +130,7 @@ class Client:
                 ok=False,
                 outputs=None,
                 workflow_run_id=run_id,
-                fail_reason=constants.FAIL_OUTPUTS_INVALID,
+                fail_reason="outputs_invalid",
                 outputs_error=str(exc),
                 workflow_status=workflow_status,
                 exc_type=type(exc).__name__,

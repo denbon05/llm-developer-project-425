@@ -126,6 +126,24 @@ class Client:
                 references, in_reply_to
             )
         outgoing.set_content(body)
+        return self._deliver(outgoing)
+
+    def send_mail(self, *, to_addr: str, subject: str, body: str) -> bool:
+        """Send ``subject`` and ``body`` as-is. Return True if accepted."""
+        if not to_addr:
+            logger.warning(
+                "smtp_skip_no_recipient", extra={"skip_reason": "no_recipient"}
+            )
+            return False
+        outgoing = EmailMessage()
+        outgoing["From"] = self._settings.smtp_user
+        outgoing["To"] = to_addr
+        outgoing["Subject"] = subject
+        outgoing.set_content(body)
+        return self._deliver(outgoing)
+
+    def _deliver(self, outgoing: EmailMessage) -> bool:
+        """SMTP submit ``outgoing``. Log failures without message content."""
         try:
             with smtplib.SMTP(
                 self._settings.smtp_host,
@@ -140,7 +158,7 @@ class Client:
                 smtp.send_message(outgoing)
         except (OSError, smtplib.SMTPException) as exc:
             logger.exception(
-                "smtp_send_failed",
+                constants.FAIL_SMTP_SEND,
                 extra={"exc_type": type(exc).__name__},
             )
             return False

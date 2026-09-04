@@ -10,6 +10,8 @@ documents.
   role `user`. For the course MVP, sender email **is** `user_id`.
 - **Assistant** — the automated author of grounded answers and other LLM
   replies; persisted as role `agent` only when a ticket exists.
+- **Operator** — participant who receives the escalation digest. Not the
+  Employee. This slice does not model operator replies or a UI.
 
 ## Core terms
 
@@ -27,6 +29,10 @@ documents.
   text. Agent rows may store `model` / `tokens_in` / `tokens_out` /
   `latency_ms`. Nothing reads `messages` back into the assistant;
   follow-up context is the inbound mail (the employee quotes the thread).
+- **Escalation digest** — one outbound email that summarizes tickets
+  **this scheduled run** moved from `open` to `escalated`. It is not a
+  Ticket or a Message and is not persisted in helpdesk Postgres. It
+  uses those tickets’ masked text, not chat history.
 - **Knowledge gap** — absence of sufficient reliable company knowledge to
   answer a legitimate help-desk request.
 - **Legitimate unsupported help-desk request** — an in-scope employee support

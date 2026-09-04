@@ -228,7 +228,7 @@ services:
       COREDUMP_DIR: /var/spool/squid
       SSRF_PROXY_ALLOW_PRIVATE_IPS: ${SSRF_PROXY_ALLOW_PRIVATE_IPS:-}
       SSRF_PROXY_ALLOW_PRIVATE_DOMAINS: ${SSRF_PROXY_ALLOW_PRIVATE_DOMAINS:-}
-    # helpdesk_private: Squid can reach allowlisted ticketing only.
+    # helpdesk_private: Squid can reach allowlisted ticketing and email-gateway.
     networks:
       - ssrf_proxy_network
       - default

@@ -20,6 +20,8 @@ from .greenmail import (
     GREENMAIL_IMAP_PORT,
     GREENMAIL_OPTS,
     GREENMAIL_SMTP_PORT,
+    OPERATOR_EMAIL,
+    OPERATOR_PASSWORD,
     SUPPORT_EMAIL,
     SUPPORT_PASSWORD,
     GreenMailEndpoints,
@@ -80,6 +82,7 @@ def gateway_settings(greenmail: GreenMailEndpoints) -> Settings:
         smtp_port=greenmail.smtp_port,
         smtp_user=SUPPORT_EMAIL,
         smtp_password=SUPPORT_PASSWORD,
+        operator_email=OPERATOR_EMAIL,
         dify_workflow_url=DIFY_WORKFLOW_URL,
         dify_email_helpdesk_api_key=DIFY_APP_KEY,
         email_poll_interval_seconds=POLL_INTERVAL_SECONDS,
@@ -91,9 +94,11 @@ def gateway_settings(greenmail: GreenMailEndpoints) -> Settings:
 
 @pytest.fixture(autouse=True)
 def empty_mailboxes(greenmail: GreenMailEndpoints) -> Iterator[None]:
-    """EXPUNGE support and employee INBOXes before and after each test."""
+    """EXPUNGE support, employee, and operator INBOXes before and after."""
     purge_inbox(greenmail, SUPPORT_EMAIL, SUPPORT_PASSWORD)
     purge_inbox(greenmail, EMPLOYEE_EMAIL, EMPLOYEE_PASSWORD)
+    purge_inbox(greenmail, OPERATOR_EMAIL, OPERATOR_PASSWORD)
     yield
     purge_inbox(greenmail, SUPPORT_EMAIL, SUPPORT_PASSWORD)
     purge_inbox(greenmail, EMPLOYEE_EMAIL, EMPLOYEE_PASSWORD)
+    purge_inbox(greenmail, OPERATOR_EMAIL, OPERATOR_PASSWORD)

@@ -10,11 +10,12 @@ services:
     image: greenmail/standalone:2.1.11
     restart: unless-stopped
     environment:
-      # Users: support@example.test / support-pass, employee1@example.test / employee1-pass
+      # Users: support@example.test / support-pass, employee1@example.test /
+      # employee1-pass, operator@example.test / operator-pass
       GREENMAIL_OPTS: >-
         -Dgreenmail.setup.test.all
         -Dgreenmail.hostname=0.0.0.0
-        -Dgreenmail.users=support:support-pass@example.test,employee1:employee1-pass@example.test
+        -Dgreenmail.users=support:support-pass@example.test,employee1:employee1-pass@example.test,operator:operator-pass@example.test
         -Dgreenmail.verbose
     # Loopback-only publish for local IMAP/SMTP/API tests (SEC-7).
     ports:
@@ -118,6 +119,7 @@ services:
       IMAP_PASSWORD: ${IMAP_PASSWORD}
       SMTP_USER: ${SMTP_USER}
       SMTP_PASSWORD: ${SMTP_PASSWORD}
+      OPERATOR_EMAIL: ${OPERATOR_EMAIL}
       EMAIL_POLL_INTERVAL_SECONDS: ${EMAIL_POLL_INTERVAL_SECONDS}
       DIFY_WORKFLOW_URL: http://nginx:80/v1/workflows/run
       DIFY_EMAIL_HELPDESK_API_KEY: ${DIFY_EMAIL_HELPDESK_API_KEY}

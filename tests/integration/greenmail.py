@@ -20,6 +20,8 @@ SUPPORT_EMAIL = "support@example.test"
 SUPPORT_PASSWORD = "support-pass"
 EMPLOYEE_EMAIL = "employee1@example.test"
 EMPLOYEE_PASSWORD = "employee1-pass"
+OPERATOR_EMAIL = "operator@example.test"
+OPERATOR_PASSWORD = "operator-pass"
 
 # GreenMail standalone test listeners (container-internal).
 GREENMAIL_SMTP_PORT = 3025
@@ -68,7 +70,8 @@ GREENMAIL_OPTS = (
     f"-Dgreenmail.hostname={_GREENMAIL_BIND_HOST} "
     "-Dgreenmail.users="
     f"{_format_greenmail_user_spec(SUPPORT_EMAIL, SUPPORT_PASSWORD)},"
-    f"{_format_greenmail_user_spec(EMPLOYEE_EMAIL, EMPLOYEE_PASSWORD)} "
+    f"{_format_greenmail_user_spec(EMPLOYEE_EMAIL, EMPLOYEE_PASSWORD)},"
+    f"{_format_greenmail_user_spec(OPERATOR_EMAIL, OPERATOR_PASSWORD)} "
     "-Dgreenmail.verbose"
 )
 

@@ -20,7 +20,11 @@ from contracts.enums import (
     TicketCategory,
     TicketStatus,
 )
-from contracts.models import EscalateStaleResponse, TicketSummary
+from contracts.models import (
+    EscalatedTicket,
+    EscalateStaleResponse,
+    TicketSummary,
+)
 from privacy.masking import mask_text
 from ticketing import constants
 from ticketing.config import Settings
@@ -255,12 +259,19 @@ class TicketingService:
         ).all()
 
         now = utcnow()
-        ticket_ids: list[str] = []
+        tickets: list[EscalatedTicket] = []
         for ticket in stale_tickets:
             ticket.status = TicketStatus.ESCALATED
             ticket.updated_at = now
-            ticket_ids.append(ticket.id)
+            tickets.append(
+                EscalatedTicket(
+                    ticket_id=ticket.id,
+                    user_id=ticket.user_id,
+                    category=ticket.category,
+                    status=ticket.status,
+                    text=ticket.text,
+                    created_at=ticket.created_at,
+                )
+            )
 
-        return EscalateStaleResponse(
-            ticket_ids=ticket_ids, count=len(ticket_ids)
-        )
+        return EscalateStaleResponse(count=len(tickets), tickets=tickets)

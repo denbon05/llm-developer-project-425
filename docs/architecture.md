@@ -1,22 +1,31 @@
 # v1 Architecture
 
-This is the as-built design of the LLM email slice. Transport and durable
+This is the v1 design of the LLM email slice. Transport and durable
 business behavior stay outside Dify. The gateway depends on a small blocking
 HTTP contract, not Studio internals. Dify orchestrates the LLM/KB/MCP graph.
-The human/operator path remains out of scope.
+There is no operator UI and no modeled operator replies; escalation digest
+email is in v1. The digest graph, gateway digest HTTP, `OPERATOR_EMAIL`,
+and SSRF `email-gateway` allowlist are in v1. Committed
+`dify/apps/escalate_stale.yml` is Schedule → escalate HTTP → parse →
+IF `count` > 0 → send `{subject, tickets}` (no digest LLM).
 
 ## Modules and interfaces
 
 - **Email gateway module** — owns IMAP/SMTP (generic IMAP poll, default 1
-  minute, configurable; GreenMail is the adapter, not its HTTP mail API).
-  It normalizes plain text / sanitized HTML, ignores attachments, one-way
-  masks PII via `src/privacy` **before** any Dify call, then either replies
-  from ordered gateway regex (FR-2) or POSTs blocking
-  `POST …/v1/workflows/run`. It validates `data.outputs`, SMTP-replies using
-  the live mail-session recipient (``In-Reply-To`` / ``References`` from the
-  inbound ``Message-ID``), then may set IMAP `\Seen`. A failed Dify call or
-  unusable outputs: log error, skip SMTP, leave UNSEEN. No application
-  outbox. The gateway does not call MCP and does not escalate.
+  minute, configurable; GreenMail is the adapter, not its HTTP mail API)
+  and a **private digest HTTP** listener beside the IMAP loop
+  (`POST /v1/emails/send`). It normalizes plain text / sanitized
+  HTML, ignores attachments, one-way masks PII via `src/privacy`
+  **before** any Dify call, then either replies from ordered gateway
+  regex (FR-2) or POSTs blocking `POST …/v1/workflows/run`. It validates
+  `data.outputs`. Employee replies SMTP using the live mail-session
+  recipient (``In-Reply-To`` / ``References`` from the inbound
+  ``Message-ID``), then may set IMAP `\Seen`. Digest SMTP uses env
+  `OPERATOR_EMAIL` (not a body `to`); it is not `\Seen` / employee-reply
+  threading. A failed Dify call or unusable outputs: log error, skip SMTP,
+  leave UNSEEN. Invalid or missing digest (no `tickets`, no flat ticket
+  fields): no SMTP, error to the caller. No application outbox. The gateway does not call MCP and does
+  not decide escalate.
 - **Dify brain module** — orchestrates LLM, KB, and MCP. Two Workflow-type
   Apps (graphs of nodes — not an agent that function-calls tools). MCP is
   invoked by **tool nodes**. Arguments are wired from other nodes (Start
@@ -27,14 +36,17 @@ The human/operator path remains out of scope.
     Score, local Ollama embeddings); live Yandex on the answer LLM and
     classifiers. `create-ticket` must not run in parallel with append
     (needs `ticket_id`).
-  - `escalate_stale` — Schedule Trigger that **only** HTTP-calls
-    `POST /v1/tickets/escalate-stale`. Dify does not own escalate rules
-    (FR-7).
+  - `escalate_stale` — Schedule Trigger (FR-9): HTTP
+    `POST /v1/tickets/escalate-stale`; parse `count` / `tickets`; IF
+    `count` is 0 → End; ELSE HTTP `POST /v1/emails/send` with
+    `{subject, tickets}`. No digest LLM. The gateway formats the operator
+    mail. Dify does not own escalate rules (FR-7).
 - **Ticketing module** — sole authority for tickets, messages, escalation
   validity, and employee scope. Scope is the `user_id` tool argument
   (synthetic sender email) on `tickets.user_id`. MCP tools and private
-  HTTP: FR-5 / FR-7. Schema: `tickets` and `messages` below. No tool reads
-  `messages` back.
+  HTTP: FR-5 / FR-7. Escalate response includes ticket summaries for the
+  digest; still no messages on escalate. Schema: `tickets` and `messages`
+  below. No tool reads `messages` back.
 - **Privacy module** — one-way masking at the gateway (before Dify) and
   again at ticketing persist. Formats: SEC-2.
 - **Knowledge module** — Git `knowledge_base/` is canonical; Weaviate is
@@ -42,15 +54,36 @@ The human/operator path remains out of scope.
   embeddings. Search settings:
   [`tests/eval/golden_retrieval.json`](../tests/eval/golden_retrieval.json).
   End `source_filenames` are filenames; the gateway builds URLs (FR-4).
-- **Lifecycle schedule** — `escalate_stale` calls ticketing HTTP. Rules
-  stay in ticketing (FR-7). Local cadence: Recorded parameters in
-  requirements.
+- **Lifecycle schedule** — `escalate_stale` calls ticketing HTTP, then
+  (when `count` > 0) the gateway digest route. Rules stay in ticketing
+  (FR-7). Local cadence: Recorded parameters in requirements.
 
 ## Conceptual application contracts
 
-The **private HTTP adapter** is not a ticket resource API. It exposes
-`POST /v1/tickets/escalate-stale` (status-only; FR-7). The route logs the
-effective threshold, count, and ticket ids (no ticket text).
+The **private HTTP adapter** is not a ticket resource API. It exposes two
+routes (private network, no shared secret):
+
+- `POST /v1/tickets/escalate-stale` — mutates `open` → `escalated` and
+  returns `count` and `tickets` summaries (FR-5 / FR-7).
+  Logs threshold, count, and ids (no ticket text).
+- `POST /v1/emails/send` on the email gateway
+  (`http://email-gateway:8080/v1/emails/send`) — `{subject, tickets}`;
+  recipient is env `OPERATOR_EMAIL`. The gateway formats the SMTP body.
+
+SMTP stays in the gateway so Dify never holds mail credentials or becomes
+an open relay. The digest HTTP omits `to` for the same reason: this
+listener has no shared secret, so a body recipient would be an open
+relay. One escalate POST (mutate + return rows) avoids a second select
+and a list-then-update race. Ticketing commits before digest send: a
+lost digest is preferred over rolling back `escalated` (which would
+re-digest and spam) or claiming exactly-once; gateway HTTP retries may
+duplicate the mail.
+
+**Trust seams (SEC-6).** Digest SMTP is gateway-formatted from ticketing
+`tickets` (masked `text` is data, not instructions). Digest `subject` is
+trusted (Dify Template or constant). Recipient is trusted env
+`OPERATOR_EMAIL`. Ticket text in the HTTP response is the same masked
+store humans read; it is not a log (SEC-5).
 
 The **MCP adapter** takes `user_id` (synthetic sender email) as a tool
 argument. Only Dify invokes these tools. Contracts: FR-5. Course MVP:
@@ -70,6 +103,7 @@ tickets.
 ```mermaid
 flowchart LR
     Employee[Employee mail client]
+    Operator[Operator mailbox]
 
     subgraph Private["Private LAN/VPN and shared container network"]
         subgraph App["Pinned application Compose project"]
@@ -94,9 +128,11 @@ flowchart LR
         Gateway -->|blocking POST /v1/workflows/run| Dify
         Dify -->|MCP create/list/append| Ticketing
         Dify -.->|Schedule Trigger HTTP escalate-stale| Ticketing
+        Dify -.->|HTTP POST /v1/emails/send| Gateway
     end
 
     Employee <--> Mail
+    Operator <--> Mail
     Dify -->|masked content only| Yandex[Yandex Cloud AI Studio]
 ```
 
@@ -114,8 +150,9 @@ Dify project creates the shared Docker network `helpdesk_private`; the
 application project joins it as external (start Dify first).
 `plugin_daemon` and `ssrf_proxy` also join that network so Studio MCP
 can reach `http://ticketing:8080/mcp/` (trailing slash; Starlette
-mount). Squid still denies other private hosts;
-`SSRF_PROXY_ALLOW_PRIVATE_DOMAINS` is `ticketing` only. The root
+mount) and Dify HTTP can reach `http://email-gateway:8080`. Squid still
+denies other private hosts; `SSRF_PROXY_ALLOW_PRIVATE_DOMAINS` is
+`ticketing,email-gateway` (committed `dify/.env.example`). The root
 `Makefile` wraps both with foreground `make dify-stack-up` /
 `make app-stack-up` (two terminals). Secret-free Dify App DSL exports
 live under `dify/apps/`.
@@ -195,7 +232,9 @@ Trust seams: SEC-6.
 - **Weaviate:** derived retrieval index. Persistent for normal operation;
   disposable and reproducible from Git knowledge.
 - **GreenMail/mailbox:** raw synthetic transport messages required for
-  email tests. Not the source of truth for ticket/message effects.
+  email tests, including the operator digest. Not the source of truth
+  for ticket/message effects. The digest is not stored in helpdesk
+  Postgres.
 
 No application JSON log is a data store (SEC-5). Ticketing logs text
 lines; the gateway logs JSON. Named volumes and wipe/re-ingest:

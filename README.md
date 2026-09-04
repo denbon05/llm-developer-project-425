@@ -9,8 +9,9 @@ non-`closed` ticket is emailed with citations (no ticket, no `messages`
 row). A knowledge gap with no non-`closed` ticket opens a ticket and
 records the inbound mail; the reply admits the miss. A non-`closed`
 ticket (`open` or `escalated`) always appends user + agent and still
-retrieves. Stale `open` tickets become `escalated` over scheduled HTTP.
-There is no operator UI. Untrusted content cannot change routing or
+retrieves. Stale `open` tickets become `escalated` over scheduled HTTP,
+and the operator receives an escalation digest email. There is no
+operator UI. Untrusted content cannot change routing or
 authorization ([SEC-6](docs/requirements.md)).
 
 Host tools: `uv`, plus Docker Desktop (Compose v2) on `PATH`. Platform

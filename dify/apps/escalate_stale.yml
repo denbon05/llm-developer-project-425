@@ -46,6 +46,48 @@ workflow:
       targetHandle: target
       type: custom
       zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        iteration_id: null
+        loop_id: null
+        sourceType: http-request
+        targetType: code
+      id: 1788454609353-source-1788544315442-target
+      source: '1788454609353'
+      sourceHandle: source
+      target: '1788544315442'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        iteration_id: null
+        loop_id: null
+        sourceType: code
+        targetType: if-else
+      id: 1788544315442-source-1788546529193-target
+      source: '1788544315442'
+      sourceHandle: source
+      target: '1788546529193'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: null
+        isInLoop: false
+        iteration_id: null
+        loop_id: null
+        sourceType: if-else
+        targetType: http-request
+      id: 1788546529193-true-1788546826802-target
+      source: '1788546529193'
+      sourceHandle: 'true'
+      target: '1788546826802'
+      targetHandle: target
+      type: custom
+      zIndex: 0
     nodes:
     - data:
         config:
@@ -114,19 +156,128 @@ workflow:
       height: 181
       id: '1788454609353'
       position:
-        x: 458
-        y: 269
+        x: 455
+        y: 258
       positionAbsolute:
-        x: 458
-        y: 269
+        x: 455
+        y: 258
       selected: false
       sourcePosition: right
       targetPosition: left
       type: custom
       width: 242
       zIndex: 0
+    - data:
+        code: "import json\n\ndef main(tickets_json: str) -> dict:\n    data = json.loads(tickets_json)\n\
+          \    count = data.get(\"count\")\n    tickets = data.get(\"tickets\")\n\
+          \    return {\n        \"count\": count,\n        \"tickets\": tickets,\n\
+          \    }\n"
+        code_language: python3
+        outputs:
+          count:
+            children: null
+            type: number
+          tickets:
+            children: null
+            type: array[object]
+        selected: false
+        title: Parse body
+        type: code
+        variables:
+        - value_selector:
+          - '1788454609353'
+          - body
+          value_type: string
+          variable: tickets_json
+      height: 52
+      id: '1788544315442'
+      position:
+        x: 757
+        y: 258
+      positionAbsolute:
+        x: 757
+        y: 258
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: '>'
+            id: 4e534460-e8ce-44e4-8d53-ff956d6f4af6
+            value: '0'
+            varType: number
+            variable_selector:
+            - '1788544315442'
+            - count
+          id: 'true'
+          logical_operator: and
+        selected: false
+        title: IF/ELSE
+        type: if-else
+      height: 124
+      id: '1788546529193'
+      position:
+        x: 1068
+        y: 286
+      positionAbsolute:
+        x: 1068
+        y: 286
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        authorization:
+          config: null
+          type: no-auth
+        body:
+          data:
+          - id: key-value-109
+            key: ''
+            type: text
+            value: "{\n  \"subject\": \"Help desk escalation digest ({{#1788544315442.count#}})\"\
+              ,\n  \"tickets\": {{#1788544315442.tickets#}}\n}"
+          type: json
+        headers: ''
+        method: post
+        params: ''
+        retry_config:
+          max_retries: 3
+          retry_enabled: true
+          retry_interval: 100
+        selected: false
+        ssl_verify: true
+        timeout:
+          max_connect_timeout: 0
+          max_read_timeout: 0
+          max_write_timeout: 0
+        title: Send digest
+        type: http-request
+        url: http://email-gateway:8080/v1/emails/send
+        variables: []
+      height: 137
+      id: '1788546826802'
+      position:
+        x: 1452.4509200816321
+        y: 354.0150286319974
+      positionAbsolute:
+        x: 1452.4509200816321
+        y: 354.0150286319974
+      selected: true
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 0
     viewport:
-      x: 168.27272245509582
-      y: -48.31817906947179
-      zoom: 1
+      x: -654.7263220633525
+      y: 121.21090007773603
+      zoom: 0.7497700163422619
   rag_pipeline_variables: []

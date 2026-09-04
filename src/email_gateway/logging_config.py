@@ -26,6 +26,7 @@ _EXTRA_LOG_KEYS = (
     "outputs_error",
     "dify_error_code",
     "workflow_status",
+    "is_sent",
 )
 
 

@@ -40,19 +40,26 @@ Do not commit `.env`, `dify/.env`, provider keys, or secrets in DSL.
    `localhost:18080`). Expect `list-my-tickets`, `create-ticket`,
    `append-message`. Dify 1.16 `statuses` on `list-my-tickets` must not be
    a single variable; omit it or enter a constant array of three strings.
-   Do not pass `[]`. If the SSRF allowlist changes, recreate `ssrf_proxy`
-   and `plugin_daemon`.
+   Do not pass `[]`. SSRF allowlist:
+   `SSRF_PROXY_ALLOW_PRIVATE_DOMAINS=ticketing,email-gateway`
+   (`dify/.env.example`). If the SSRF allowlist changes, recreate
+   `ssrf_proxy` and `plugin_daemon`.
 3. **Import** `dify/apps/email_helpdesk.yml`, then
    `dify/apps/escalate_stale.yml`
    ([dify/apps/README.md](../dify/apps/README.md)). Escalate is a
    **Schedule Trigger**, not User Input. HTTP POST
    `http://ticketing:8080/v1/tickets/escalate-stale`. Studio app env
    `ESCALATION_SECONDS=30` as `older_than_seconds` (not root `.env`).
-   Publish and enable the trigger.
+   After a non-zero `count`, HTTP
+   `POST http://email-gateway:8080/v1/emails/send` with `{subject,
+   tickets}` (gateway formats the mail; no digest LLM). Publish and
+   enable the trigger.
 4. **App API key** → gitignored `.env` as `DIFY_EMAIL_HELPDESK_API_KEY`.
    Gateway uses in-network `http://nginx:80/v1/workflows/run`.
 5. **Mail.** Real client vs GreenMail; `employee1@example.test` **To:**
-   `support@example.test`. Accounts: [GreenMail](#greenmail).
+   `support@example.test`. Operator digest mailbox:
+   `operator@example.test` (`OPERATOR_EMAIL`). Accounts:
+   [GreenMail](#greenmail).
 6. **Ollama embedding provider.** **Text Embedding** (not LLM); model
    `ibm/granite-embedding:30m`; base URL `http://ollama:11434` (Compose
    hostname, not `localhost`); context size **512**.
@@ -87,6 +94,9 @@ Do not commit `.env`, `dify/.env`, provider keys, or secrets in DSL.
 | `localhost:15432` | Helpdesk Postgres (host tools) |
 | `localhost:18080` | Ticketing HTTP (`/v1/…`) and MCP (`/mcp`) |
 
+Digest HTTP is in-network only (`http://email-gateway:8080`; no host
+bind).
+
 Browse Dify with the same hostname as `NEXT_PUBLIC_SOCKET_URL` in
 `dify/.env` (default `ws://localhost:13080`). Weaviate, Dify Postgres, and
 Redis have no host ports.
@@ -97,9 +107,11 @@ Redis have no host ports.
 | --- | --- | --- |
 | `employee1@example.test` | `employee1-pass` | Employee: compose **To:** `support@example.test` |
 | `support@example.test` | `support-pass` | Gateway inbox. Do not poll this account as the employee. |
+| `operator@example.test` | `operator-pass` | Operator digest mailbox (`OPERATOR_EMAIL`). Must not equal `IMAP_USER`. |
 
 Connect SMTP to `127.0.0.1:3025` and IMAP to `127.0.0.1:3143`. Extra users
-belong in `greenmail.users` in `compose.yml`.
+belong in `greenmail.users` in `compose.yml` (the operator account is
+already there).
 
 ## Env files
 
@@ -107,8 +119,10 @@ belong in `greenmail.users` in `compose.yml`.
 Compose interpolates `.env` with no `:-` fallbacks. `DATABASE_URL` is for
 host tools; Compose injects the in-network DSN into ticketing.
 `DIFY_DATASETS_API_KEY` is host-side eval only. Escalate threshold is the
-Studio app env, not root `.env`. Keep `REDIS_SOCKET_TIMEOUT=3600`. Image
-tags are pinned in `compose.yml` and `dify/compose.yml`. Embedding model:
+Studio app env, not root `.env`. Gateway digest recipient (not a
+secret): `OPERATOR_EMAIL=operator@example.test`; must not equal
+`IMAP_USER`. Keep `REDIS_SOCKET_TIMEOUT=3600`. Image tags are
+pinned in `compose.yml` and `dify/compose.yml`. Embedding model:
 `ibm/granite-embedding:30m`.
 
 Gateway diagnosis: `docker compose logs email-gateway`. Look for ERROR
