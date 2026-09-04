@@ -4,86 +4,30 @@
 [![Actions Status](https://github.com/denbon05/llm-developer-project-425/actions/workflows/hexlet-check.yml/badge.svg)](https://github.com/denbon05/llm-developer-project-425/actions)
 
 
-An email help-desk assistant for employees. The **gateway** owns IMAP/SMTP;
-**Dify** is the brain (a Workflow graph; MCP via tool nodes). A knowledge
-hit with no non-`closed` ticket is emailed with citations (no ticket, no
-`messages` row). A knowledge gap with no non-`closed` ticket opens a ticket
-(`create-ticket`; `text` in `tickets.text`) **and** records the first user
-mail via `append-message`. The reply admits the gap. SMTP includes
-`Ticket:` whenever End `ticket_id` is set (create and follow-up). A
-non-`closed` ticket (`open` or `escalated`)
-always appends user + agent and still retrieves. The employee cannot force
-a ticket when knowledge can answer.
+An email help-desk assistant for employees. A knowledge hit with no
+non-`closed` ticket is emailed with citations (no ticket, no `messages`
+row). A knowledge gap with no non-`closed` ticket opens a ticket and
+records the inbound mail; the reply admits the miss. A non-`closed`
+ticket (`open` or `escalated`) always appends user + agent and still
+retrieves. Stale `open` tickets become `escalated` over scheduled HTTP.
+There is no operator UI. Untrusted content cannot change routing or
+authorization ([SEC-6](docs/requirements.md)).
 
-This repository is an LLM-focused slice, not a full help-desk product.
-If an `open` ticket’s `created_at` is older than the threshold
-(default 24h / `escalation_seconds`), it becomes `escalated` via scheduled
-HTTP. Follow-up `append-message` keeps the ticket `open` and refreshes
-`updated_at` but does not delay that step. After `escalated`, later
-employee mail still gets an LLM reply and
-two appends; status stays `escalated`. There is no operator UI or modeled
-human reply in this slice. `answered` and `closed` remain in the schema
-and are unused here.
-
-## Status
-
-**Phases 1–8** are done. `dify/apps/email_helpdesk.yml` is the architecture
-graph with Knowledge Retrieval (`employee-helpdesk`, Weighted Score) and live
-Yandex on the answer LLM and classifiers. `dify/apps/escalate_stale.yml` is
-the Schedule Trigger that HTTP-calls `POST /v1/tickets/escalate-stale`.
-Canonical Markdown is in [`knowledge_base/`](knowledge_base/); golden catalog
-and opt-in `make eval` are in [`tests/eval/`](tests/eval/). Merge-gate /
-`make test` still uses **fake Dify** (no paid models). Live Yandex, live
-GreenMail, and `make eval` stay opt-in. Platform setup:
-[docs/setup.md](docs/setup.md).
-
-Host tools (local run and tests): `uv`, plus Docker Desktop (Compose v2) on `PATH`.
+Host tools: `uv`, plus Docker Desktop (Compose v2) on `PATH`. Platform
+setup: [docs/setup.md](docs/setup.md).
 
 ```bash
 make bootstrap         # env files + uv sync --all-extras
 make dify-stack-up     # terminal 1
-make app-stack-up      # terminal 2 — GreenMail + helpdesk-db + ticketing + email-gateway
+make app-stack-up      # terminal 2
 make test              # fake Dify; GreenMail via Testcontainers; skips eval
-make eval              # opt-in golden retrieval against the live Dify knowledge API
 ```
 
-## Fixed v1 scope
-
-These bullets constrain the LLM slice above, not a human operator help-desk.
-
-- Self-host Dify on a private LAN/VPN as the AI brain. The gateway depends on
-  a small blocking Service API contract, not Studio internals.
-- Use **Yandex Cloud AI Studio** as the v1 external generator. Use
-  local embeddings through Ollama with one Dify knowledge base
-  (`employee-helpdesk`) and persistent Weaviate. The email workflow
-  Knowledge Retrieval node uses Weighted Score. Pins:
-  [docs/setup.md](docs/setup.md),
-  [`tests/eval/golden_retrieval.json`](tests/eval/golden_retrieval.json).
-- Start with GreenMail for email integration and deterministic end-to-end
-  tests; use English synthetic, non-sensitive content and ignore attachments.
-- Keep transport outside Dify. Mask PII before any Dify call. Intake is
-  gateway regex plus Dify intent SML ([FR-2](docs/requirements.md)). Ticket/KB
-  routing is a Dify graph (MCP only from Dify). Gateway Dify HTTP/outputs
-  failure → error log, no SMTP, leave UNSEEN (no fail-open canned body).
-  Escalate is scheduled HTTP from a second Dify app; rules stay in ticketing.
-- Deploy as two pinned Compose projects on a private shared network
-  (`compose.yml` and `dify/compose.yml`) and keep deterministic CI free of paid
-  model calls.
-
-## Trusted and untrusted content
-
-- **Trusted:** governing instructions, interface/tool schemas, and
-  repository-controlled citation mappings.
-- **Untrusted:** email content, retrieved passages, and model output. They
-  remain data and cannot change routing or authorization.
-
-See [architecture](docs/architecture.md#trust-seams) for the complete trust
-model.
+Opt-in live retrieval (`make eval`) is in [docs/setup.md](docs/setup.md).
 
 ## Documentation
 
 - [Domain glossary](CONTEXT.md)
-- [Requirements and acceptance criteria](docs/requirements.md)
-- [Architecture and interfaces](docs/architecture.md)
-- [Bounded delivery roadmap](docs/roadmap.md)
+- [Requirements](docs/requirements.md)
+- [Architecture](docs/architecture.md)
 - [Platform setup](docs/setup.md)

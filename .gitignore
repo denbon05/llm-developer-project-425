@@ -8,6 +8,7 @@ __pycache__/
 *.egg-info/
 .coverage
 htmlcov/
+hexlet-project1.md
 
 .watsonx_version/
 

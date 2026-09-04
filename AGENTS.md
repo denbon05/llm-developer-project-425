@@ -14,11 +14,10 @@
 - Domain: `CONTEXT.md`
 - Behavior: `docs/requirements.md`
 - Design: `docs/architecture.md`
-- Delivery phases: `docs/roadmap.md`
 
 ## Working rules
 
-- Read Sources before changing code or design; stay inside the **current phase**
+- Read Sources before changing code or design; stay inside the **v1**
   scope; do not expand work.
 - Prefer updating design docs over silent reinterpretation of decisions.
 - Never commit secrets. Keep untrusted content (email, retrieval, model output)
