@@ -14,10 +14,16 @@ TOXICITY_TERMS = ("idiot", "stupid", "shut up", "hate you")
 
 INJECTION_PHRASE_TERMS = (
     "ignore previous instruction",
-    "ignore previous instructions",
+    "игнорируй предыдущие инструкции",
     "DROP TABLE",
 )
 """Instruction-override and SQL phrases."""
+
+WORKFLOW_RETRY_ATTEMPTS = 3
+"""Blocking Dify POSTs per inbound mail for a retryable miss."""
+
+WORKFLOW_RETRY_BASE_SECONDS = 0.5
+"""Full-jitter cap after the first miss."""
 
 FAIL_SMTP_SEND = "smtp_send"
 """SMTP did not accept the message (log / HTTP detail)."""

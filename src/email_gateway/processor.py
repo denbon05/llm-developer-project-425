@@ -4,11 +4,14 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import random
 from dataclasses import dataclass
+from http import HTTPStatus
 from typing import Any
 
 import httpx
 
+from email_gateway import constants
 from email_gateway.clients import dify, mailbox
 from email_gateway.config import Settings
 from email_gateway.normalize import split_quoted_body
@@ -19,6 +22,10 @@ logger = logging.getLogger(__name__)
 
 # ``OutboundReply.source`` when the body came from workflow End outputs.
 _REPLY_WORKFLOW_OUTPUTS = "workflow_outputs"
+# Canned ack after a terminal miss or exhausted retries (not End outputs).
+_REPLY_WORKFLOW_GIVE_UP = "workflow_give_up"
+# Full-jitter cap grows as ``base * growth**n`` after failure ``n``.
+_RETRY_DELAY_GROWTH = 2
 
 
 @dataclass(frozen=True)
@@ -55,6 +62,30 @@ def _copy_failure_fields(uid: str, result: dify.CallResult) -> dict[str, Any]:
         "workflow_run_id": result.workflow_run_id,
         "exc_type": result.exc_type,
     }
+
+
+def is_retryable_workflow_failure(result: dify.CallResult) -> bool:
+    """True when another blocking POST might succeed (timeout, 5xx, 429)."""
+    if result.ok:
+        return False
+    if result.fail_reason == "http_error":
+        return True
+    status = result.http_status
+    if result.fail_reason != "http_status" or status is None:
+        return False
+    return (
+        status >= HTTPStatus.INTERNAL_SERVER_ERROR
+        or status == HTTPStatus.TOO_MANY_REQUESTS
+        or status == HTTPStatus.REQUEST_TIMEOUT
+    )
+
+
+def _workflow_retry_delay_seconds(failed_attempt_index: int) -> float:
+    """Sleep cap ``U(0, base * growth**n)`` so retries do not bunch."""
+    cap = constants.WORKFLOW_RETRY_BASE_SECONDS * (
+        _RETRY_DELAY_GROWTH**failed_attempt_index
+    )
+    return random.random() * cap
 
 
 class Processor:
@@ -94,12 +125,27 @@ class Processor:
         *,
         should_mark_seen: bool = True,
     ) -> None:
-        """Mask, optional Dify, SMTP; no send or ``\\Seen`` on Dify failure."""
+        """Mask, optional Dify, SMTP; canned ack when a Dify miss is final."""
         if not message.sender:
             logger.warning(
                 "skip_no_sender",
                 extra={"uid": message.uid, "skip_reason": "no_sender"},
             )
+            # parseaddr left no mailbox; cannot invent a reply recipient.
+            if should_mark_seen:
+                try:
+                    await asyncio.to_thread(
+                        self._mailbox.mark_seen, message.uid
+                    )
+                except Exception as exc:
+                    logger.exception(
+                        "imap_seen_failed",
+                        extra={
+                            "uid": message.uid,
+                            "skip_reason": "no_sender",
+                            "exc_type": type(exc).__name__,
+                        },
+                    )
             return
         masked_subject = mask_text(message.subject)
         masked_body = mask_text(message.body)
@@ -112,21 +158,9 @@ class Processor:
                 source=static_reply.source, text=static_reply.text
             )
         else:
-            # Blocking Service API: wait for End outputs, not a stream.
-            request_text, blockquote = split_quoted_body(masked_body)
-            workflow_result = await self._dify.run_blocking_workflow(
-                user_email=message.sender,
-                subject=masked_subject,
-                request_text=request_text,
-                blockquote=blockquote,
+            outbound = await self._outbound_from_workflow(
+                message, masked_subject, masked_body
             )
-            outbound = build_outbound_from_workflow(workflow_result)
-            if outbound is None:
-                logger.error(
-                    "workflow_failed",
-                    extra=_copy_failure_fields(message.uid, workflow_result),
-                )
-                return
         sent = await asyncio.to_thread(
             self._mailbox.send_reply,
             to_addr=message.sender,
@@ -159,6 +193,43 @@ class Processor:
                 "workflow_run_id": outbound.workflow_run_id,
             },
         )
+
+    async def _outbound_from_workflow(
+        self,
+        message: mailbox.InboundMessage,
+        masked_subject: str,
+        masked_body: str,
+    ) -> OutboundReply:
+        """Blocking Dify with jittered retries; canned ack when giving up."""
+        request_text, blockquote = split_quoted_body(masked_body)
+        failed_count = 0 # in-mem is fine for v1
+        while True:
+            workflow_result = await self._dify.run_blocking_workflow(
+                user_email=message.sender,
+                subject=masked_subject,
+                request_text=request_text,
+                blockquote=blockquote,
+            )
+            outbound = build_outbound_from_workflow(workflow_result)
+            if outbound is not None:
+                return outbound
+            failed_count += 1
+            can_retry = (
+                is_retryable_workflow_failure(workflow_result)
+                and failed_count < constants.WORKFLOW_RETRY_ATTEMPTS
+            )
+            if not can_retry:
+                logger.error(
+                    "workflow_failed",
+                    extra=_copy_failure_fields(message.uid, workflow_result),
+                )
+                # Same canned body as intake injection; not End outputs.
+                return OutboundReply(
+                    source=_REPLY_WORKFLOW_GIVE_UP,
+                    text=self._settings.static_ack_text,
+                    workflow_run_id=workflow_result.workflow_run_id,
+                )
+            await asyncio.sleep(_workflow_retry_delay_seconds(failed_count - 1))
 
     async def poll_with_interval(self) -> None:
         """Run poll cycles forever, sleeping ``email_poll_interval_seconds``."""

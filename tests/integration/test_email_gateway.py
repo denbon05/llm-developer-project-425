@@ -87,12 +87,14 @@ class FakeDify:
     """httpx MockTransport for blocking ``POST …/v1/workflows/run``.
 
     Modes: echo (reply_text = request_text), http_error (HTTP 500),
-    missing_reply (empty outputs), bad_source_filenames (nested path, not a
-    filename), cited (reply plus knowledge_base filename).
+    http_not_found (HTTP 404), missing_reply (empty outputs),
+    bad_source_filenames (nested path, not a filename), cited (reply plus
+    knowledge_base filename).
     """
 
     MODE_ECHO = "echo"
     MODE_HTTP_ERROR = "http_error"
+    MODE_HTTP_NOT_FOUND = "http_not_found"
     MODE_MISSING_REPLY = "missing_reply"
     MODE_BAD_SOURCE_FILENAMES = "bad_source_filenames"
     MODE_CITED = "cited"
@@ -110,6 +112,11 @@ class FakeDify:
             return httpx.Response(
                 HTTPStatus.INTERNAL_SERVER_ERROR,
                 json={"message": "workflow down"},
+            )
+        if self.mode == self.MODE_HTTP_NOT_FOUND:
+            return httpx.Response(
+                HTTPStatus.NOT_FOUND,
+                json={"message": "workflow missing"},
             )
         payload = json.loads(request.content)
         inputs = payload.get("inputs", {})
@@ -384,11 +391,14 @@ async def test_duplicate_window_when_seen_skipped(
 
 
 @pytest.mark.asyncio
-async def test_dify_http_failure_leaves_unseen(
+async def test_dify_http_failure_retries_then_static_ack(
     greenmail: GreenMailEndpoints,
     gateway_settings: Settings,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """HTTP 500 skips SMTP, leaves UNSEEN, and retries on the next poll."""
+    """HTTP 500 is retried, then static ack SMTP and ``\\Seen``."""
+    # Zero jitter so three blocking POSTs finish in this cycle.
+    monkeypatch.setattr(constants, "WORKFLOW_RETRY_BASE_SECONDS", 0)
     deliver_message(
         greenmail,
         make_text_mail(subject="outage", body=_OUTAGE_BODY),
@@ -397,20 +407,73 @@ async def test_dify_http_failure_leaves_unseen(
 
     fake_dify = FakeDify(mode=FakeDify.MODE_HTTP_ERROR)
     await _run_one_poll_cycle(gateway_settings, fake_dify)
-    await _run_one_poll_cycle(gateway_settings, fake_dify)
 
-    assert list_inbox_bodies(greenmail, EMPLOYEE_EMAIL, EMPLOYEE_PASSWORD) == []
-    # Non-empty: inbound mail stayed UNSEEN.
-    assert list_unseen_uids(greenmail, SUPPORT_EMAIL, SUPPORT_PASSWORD)
-    assert len(fake_dify.requests) == _DUPLICATE_WINDOW_WORKFLOW_CALLS
+    # Canned ack to the employee; inbound is no longer UNSEEN.
+    reply_bodies = wait_for_inbox_bodies(
+        greenmail, EMPLOYEE_EMAIL, EMPLOYEE_PASSWORD
+    )
+    assert any(constants.STATIC_ACK_TEXT in item for item in reply_bodies)
+    assert list_unseen_uids(greenmail, SUPPORT_EMAIL, SUPPORT_PASSWORD) == []
+    assert len(fake_dify.requests) == constants.WORKFLOW_RETRY_ATTEMPTS
 
 
 @pytest.mark.asyncio
-async def test_missing_reply_text_leaves_unseen(
+async def test_dify_http_not_found_static_ack_without_retry(
     greenmail: GreenMailEndpoints,
     gateway_settings: Settings,
 ) -> None:
-    """Missing End reply_text is not fail-open: no SMTP, mail stays UNSEEN."""
+    """HTTP 404 skips extra POSTs; static ack SMTP and ``\\Seen``."""
+    deliver_message(
+        greenmail,
+        make_text_mail(subject="gone", body=_OUTAGE_BODY),
+    )
+    wait_for_unseen(greenmail, SUPPORT_EMAIL, SUPPORT_PASSWORD)
+
+    # 404 is terminal: one POST, then canned ack, not two more retries.
+    fake_dify = FakeDify(mode=FakeDify.MODE_HTTP_NOT_FOUND)
+    await _run_one_poll_cycle(gateway_settings, fake_dify)
+
+    reply_bodies = wait_for_inbox_bodies(
+        greenmail, EMPLOYEE_EMAIL, EMPLOYEE_PASSWORD
+    )
+    assert any(constants.STATIC_ACK_TEXT in item for item in reply_bodies)
+    assert list_unseen_uids(greenmail, SUPPORT_EMAIL, SUPPORT_PASSWORD) == []
+    assert len(fake_dify.requests) == _ONE_WORKFLOW_CALL
+
+
+@pytest.mark.asyncio
+async def test_empty_from_marks_seen_without_smtp(
+    greenmail: GreenMailEndpoints,
+    gateway_settings: Settings,
+) -> None:
+    """Empty From mailbox (null reverse-path) is ``\\Seen`` with no SMTP."""
+    # Header From has no mailbox; envelope_from is only so
+    # GreenMail accepts MAIL FROM.
+    deliver_message(
+        greenmail,
+        make_text_mail(subject="orphan", body="help", from_addr="<>"),
+        envelope_from=EMPLOYEE_EMAIL,
+    )
+    wait_for_unseen(greenmail, SUPPORT_EMAIL, SUPPORT_PASSWORD)
+
+    fake_dify = FakeDify()
+    await _run_one_poll_cycle(gateway_settings, fake_dify)
+
+    # No Dify, no reply (nowhere to send); inbound still
+    # leaves the UNSEEN queue.
+    assert fake_dify.requests == []
+    assert (
+        list_inbox_bodies(greenmail, EMPLOYEE_EMAIL, EMPLOYEE_PASSWORD) == []
+    )
+    assert list_unseen_uids(greenmail, SUPPORT_EMAIL, SUPPORT_PASSWORD) == []
+
+
+@pytest.mark.asyncio
+async def test_missing_reply_text_sends_static_ack(
+    greenmail: GreenMailEndpoints,
+    gateway_settings: Settings,
+) -> None:
+    """Missing End reply_text is not fail-open: static ack, then ``\\Seen``."""
     deliver_message(
         greenmail,
         make_text_mail(subject="malformed", body=_MALFORMED_BODY),
@@ -420,17 +483,20 @@ async def test_missing_reply_text_leaves_unseen(
     fake_dify = FakeDify(mode=FakeDify.MODE_MISSING_REPLY)
     await _run_one_poll_cycle(gateway_settings, fake_dify)
 
-    assert list_inbox_bodies(greenmail, EMPLOYEE_EMAIL, EMPLOYEE_PASSWORD) == []
-    # Non-empty: inbound mail stayed UNSEEN.
-    assert list_unseen_uids(greenmail, SUPPORT_EMAIL, SUPPORT_PASSWORD)
+    reply_bodies = wait_for_inbox_bodies(
+        greenmail, EMPLOYEE_EMAIL, EMPLOYEE_PASSWORD
+    )
+    assert any(constants.STATIC_ACK_TEXT in item for item in reply_bodies)
+    assert list_unseen_uids(greenmail, SUPPORT_EMAIL, SUPPORT_PASSWORD) == []
+    assert len(fake_dify.requests) == _ONE_WORKFLOW_CALL
 
 
 @pytest.mark.asyncio
-async def test_invalid_source_filename_leaves_unseen(
+async def test_invalid_source_filename_sends_static_ack(
     greenmail: GreenMailEndpoints,
     gateway_settings: Settings,
 ) -> None:
-    """A nested citation path is not SMTP'd; mail stays UNSEEN."""
+    """A nested citation path is not sent as the reply; static ack instead."""
     deliver_message(
         greenmail,
         make_text_mail(subject="cite", body=_CITE_BODY),
@@ -440,9 +506,13 @@ async def test_invalid_source_filename_leaves_unseen(
     fake_dify = FakeDify(mode=FakeDify.MODE_BAD_SOURCE_FILENAMES)
     await _run_one_poll_cycle(gateway_settings, fake_dify)
 
-    assert list_inbox_bodies(greenmail, EMPLOYEE_EMAIL, EMPLOYEE_PASSWORD) == []
-    # Non-empty: inbound mail stayed UNSEEN.
-    assert list_unseen_uids(greenmail, SUPPORT_EMAIL, SUPPORT_PASSWORD)
+    reply_bodies = wait_for_inbox_bodies(
+        greenmail, EMPLOYEE_EMAIL, EMPLOYEE_PASSWORD
+    )
+    assert any(constants.STATIC_ACK_TEXT in item for item in reply_bodies)
+    assert all(_REJECTED_WORKFLOW_REPLY not in item for item in reply_bodies)
+    assert list_unseen_uids(greenmail, SUPPORT_EMAIL, SUPPORT_PASSWORD) == []
+    assert len(fake_dify.requests) == _ONE_WORKFLOW_CALL
 
 
 @pytest.mark.asyncio

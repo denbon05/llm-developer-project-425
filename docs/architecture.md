@@ -22,10 +22,12 @@ IF `count` > 0 → send `{subject, tickets}` (no digest LLM).
   recipient (``In-Reply-To`` / ``References`` from the inbound
   ``Message-ID``), then may set IMAP `\Seen`. Digest SMTP uses env
   `OPERATOR_EMAIL` (not a body `to`); it is not `\Seen` / employee-reply
-  threading. A failed Dify call or unusable outputs: log error, skip SMTP,
-  leave UNSEEN. Invalid or missing digest (no `tickets`, no flat ticket
-  fields): no SMTP, error to the caller. No application outbox. The gateway does not call MCP and does
-  not decide escalate.
+  threading. A retryable Dify miss: jittered retries, then static SMTP
+  ack and `\Seen`. A terminal miss or unusable outputs: static ack and
+  `\Seen` without retry. Empty From: `\Seen`, no SMTP. Invalid or
+  missing digest (no `tickets`, no flat ticket fields): no SMTP, error
+  to the caller. No application outbox. The gateway does not call MCP
+  and does not decide escalate.
 - **Dify brain module** — orchestrates LLM, KB, and MCP. Two Workflow-type
   Apps (graphs of nodes — not an agent that function-calls tools). MCP is
   invoked by **tool nodes**. Arguments are wired from other nodes (Start

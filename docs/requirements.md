@@ -43,13 +43,12 @@ non-`closed` ticket exists.
   masking (`src/privacy`) so Studio logs never see raw PII. Ordered
   **gateway regex** (in `email_gateway.replies`) runs on the full masked
   subject+body before the `request_text`/`blockquote` split: toxicity,
-  then cheap injection/SQL phrases, then hello. A match is a static SMTP
-  body, no Dify, no KB, no MCP, no ticket. Cheap phrases include “ignore
-  previous instruction”, “ignore previous instructions”, and DROP TABLE
-  (case-insensitive). A hello match must be the whole remaining text so a
-  real question still reaches Dify. Residual/subtle cases use Dify intent
-  SML (`safe` | `injection` | `off-topic`) in FR-3. v1 has no sender or
-  domain allowlist.
+  then cheap instruction-override and SQL-injection phrases, then hello.
+  A match is a static SMTP body, no Dify, no KB, no MCP, no ticket.
+  Residual and subtle cases use Dify intent SML (`safe` | `injection` |
+  `off-topic`) in FR-3. A hello match must be the whole remaining text so
+  a real question still reaches Dify. v1 has no sender or domain
+  allowlist.
 - **FR-3 — Controlled routing.** After normalization and masking, the
   gateway POSTs a blocking Dify run (Start fields `user_email`, `subject`,
   `request_text` = already-masked latest question, `blockquote` =
@@ -59,9 +58,12 @@ non-`closed` ticket exists.
   `off-topic` skip KR, the answer LLM, and all MCP (no create, no append —
   including no append on an existing ticket). They may share one static
   Template `reply_text`. That body SMTP when the workflow finishes. A
-  gateway Dify HTTP or outputs failure is not fail-open: log the error,
-  skip SMTP, leave the message UNSEEN, retry on the next poll. None of
-  those paths create a ticket from the gateway. `safe` then calls
+  retryable Dify HTTP miss (timeout, 5xx, 429) is retried up to three
+  times with full-jitter backoff in the gateway process, then SMTP-sends
+  the static ack and may set `\Seen`. A terminal miss (other 4xx,
+  unusable End outputs) skips retry, SMTP-sends the same static ack, then
+  `\Seen`. Missing From mailbox: `\Seen` and no SMTP. None of those paths
+  create a ticket from the gateway. `safe` then calls
   `list-my-tickets` and follows this table (employee **cannot** override):
 
   | State | KB can answer | DB |
@@ -156,9 +158,11 @@ non-`closed` ticket exists.
   Dify does not own escalate rules.
 - **FR-8 — Delivery semantics.** Ticket/message effects are best-effort and
   at-least-once. The gateway may mark an inbound message processed (IMAP
-  `\Seen`) after successful SMTP of an intake or workflow reply. A failed
-  Dify call does not SMTP and does not set `\Seen`. Poll retries may
-  repeat mutations. Outbound SMTP is gateway-owned and at-least-once: a
+  `\Seen`) after successful SMTP of an intake, workflow, or static-ack
+  reply, or after skipping SMTP when From has no mailbox. A retryable
+  Dify miss does not SMTP until retries are exhausted; then static ack
+  and `\Seen`. Poll retries may repeat mutations if `\Seen` never lands.
+  Outbound SMTP is gateway-owned and at-least-once: a
   crash after send but before `\Seen` can duplicate the email on the next
   poll. Documented SMTP duplicate window: **one poll interval** (default
   60s) **plus** the blocking Dify wait. Digest SMTP is also

@@ -99,6 +99,7 @@ def deliver_message(
     *,
     user: str = EMPLOYEE_EMAIL,
     password: str = EMPLOYEE_PASSWORD,
+    envelope_from: str | None = None,
 ) -> None:
     """Send ``message`` as ``user`` (employee to support by default)."""
     with smtplib.SMTP(
@@ -107,7 +108,11 @@ def deliver_message(
         timeout=_SMTP_TIMEOUT_SECONDS,
     ) as smtp:
         _smtp_login(smtp, user, password)
-        smtp.send_message(message)
+        # Header From can be empty; GreenMail still needs a MAIL FROM mailbox.
+        if envelope_from is None:
+            smtp.send_message(message)
+        else:
+            smtp.send_message(message, from_addr=envelope_from)
 
 
 def wait_for_inbox_bodies(
