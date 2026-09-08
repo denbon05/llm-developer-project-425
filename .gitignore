@@ -11,6 +11,7 @@ htmlcov/
 hexlet-project1.md
 
 .watsonx_version/
+tmp*
 
 # Local runtime state
 .data/

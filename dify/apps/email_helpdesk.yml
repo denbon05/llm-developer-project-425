@@ -45,8 +45,6 @@ workflow:
     - data:
         isInIteration: false
         isInLoop: false
-        iteration_id: null
-        loop_id: null
         sourceType: start
         targetType: question-classifier
       id: 1786730582147-source-1788284739657-target
@@ -60,8 +58,6 @@ workflow:
     - data:
         isInIteration: false
         isInLoop: false
-        iteration_id: null
-        loop_id: null
         sourceType: tool
         targetType: code
       id: 1787408944712-source-1787415783237-target
@@ -75,8 +71,6 @@ workflow:
     - data:
         isInIteration: false
         isInLoop: false
-        iteration_id: null
-        loop_id: null
         sourceType: code
         targetType: knowledge-retrieval
       id: 1787415783237-source-1788195984130-target
@@ -89,8 +83,6 @@ workflow:
     - data:
         isInIteration: false
         isInLoop: false
-        iteration_id: null
-        loop_id: null
         sourceType: tool
         targetType: code
       id: 1787418110266-source-1787418417198-target
@@ -104,8 +96,6 @@ workflow:
     - data:
         isInIteration: false
         isInLoop: false
-        iteration_id: null
-        loop_id: null
         sourceType: tool
         targetType: tool
       id: 1787418286718-source-1787418649631-target
@@ -119,8 +109,6 @@ workflow:
     - data:
         isInIteration: false
         isInLoop: false
-        iteration_id: null
-        loop_id: null
         sourceType: code
         targetType: variable-aggregator
       id: 1787418417198-source-1788196953658-target
@@ -134,8 +122,6 @@ workflow:
     - data:
         isInIteration: false
         isInLoop: false
-        iteration_id: null
-        loop_id: null
         sourceType: tool
         targetType: variable-aggregator
       id: 1787418649631-source-1788285626784-target
@@ -148,8 +134,6 @@ workflow:
     - data:
         isInIteration: false
         isInLoop: false
-        iteration_id: null
-        loop_id: null
         sourceType: if-else
         targetType: variable-aggregator
       id: 1787479761026-c87359f3-617c-463c-b3bb-c0e072fe1457-1788285626784-target
@@ -162,8 +146,6 @@ workflow:
     - data:
         isInIteration: false
         isInLoop: false
-        iteration_id: null
-        loop_id: null
         sourceType: if-else
         targetType: question-classifier
       id: 1787479761026-false-1787939099211-target
@@ -177,8 +159,6 @@ workflow:
     - data:
         isInIteration: false
         isInLoop: false
-        iteration_id: null
-        loop_id: null
         sourceType: if-else
         targetType: variable-aggregator
       id: 1787479761026-true-1788196953658-target
@@ -192,8 +172,6 @@ workflow:
     - data:
         isInIteration: false
         isInLoop: false
-        iteration_id: null
-        loop_id: null
         sourceType: code
         targetType: llm
       id: 1787680600373-source-1787934852190-target
@@ -207,8 +185,6 @@ workflow:
     - data:
         isInIteration: false
         isInLoop: false
-        iteration_id: null
-        loop_id: null
         sourceType: llm
         targetType: code
       id: 1787934852190-source-1788281326979-target
@@ -222,8 +198,6 @@ workflow:
     - data:
         isInIteration: false
         isInLoop: false
-        iteration_id: null
-        loop_id: null
         sourceType: question-classifier
         targetType: tool
       id: 1787939099211-1-1787418110266-target
@@ -237,8 +211,6 @@ workflow:
     - data:
         isInIteration: false
         isInLoop: false
-        iteration_id: null
-        loop_id: null
         sourceType: question-classifier
         targetType: tool
       id: 1787939099211-1787939328752-1787418110266-target
@@ -252,8 +224,6 @@ workflow:
     - data:
         isInIteration: false
         isInLoop: false
-        iteration_id: null
-        loop_id: null
         sourceType: question-classifier
         targetType: tool
       id: 1787939099211-1787939337911-1787418110266-target
@@ -267,8 +237,6 @@ workflow:
     - data:
         isInIteration: false
         isInLoop: false
-        iteration_id: null
-        loop_id: null
         sourceType: question-classifier
         targetType: tool
       id: 1787939099211-2-1787418110266-target
@@ -282,8 +250,6 @@ workflow:
     - data:
         isInIteration: false
         isInLoop: false
-        iteration_id: null
-        loop_id: null
         sourceType: knowledge-retrieval
         targetType: code
       id: 1788195984130-source-1787680600373-target
@@ -296,8 +262,6 @@ workflow:
     - data:
         isInIteration: false
         isInLoop: false
-        iteration_id: null
-        loop_id: null
         sourceType: variable-aggregator
         targetType: tool
       id: 1788196953658-source-1787418286718-target
@@ -311,8 +275,6 @@ workflow:
     - data:
         isInIteration: false
         isInLoop: false
-        iteration_id: null
-        loop_id: null
         sourceType: code
         targetType: if-else
       id: 1788281326979-source-1787479761026-target
@@ -326,8 +288,6 @@ workflow:
     - data:
         isInIteration: false
         isInLoop: false
-        iteration_id: null
-        loop_id: null
         sourceType: question-classifier
         targetType: template-transform
       id: 1788284739657-1-1788285001970-target
@@ -341,8 +301,6 @@ workflow:
     - data:
         isInIteration: false
         isInLoop: false
-        iteration_id: null
-        loop_id: null
         sourceType: question-classifier
         targetType: template-transform
       id: 1788284739657-1788289052450-1788285001970-target
@@ -355,8 +313,6 @@ workflow:
     - data:
         isInIteration: false
         isInLoop: false
-        iteration_id: null
-        loop_id: null
         sourceType: question-classifier
         targetType: tool
       id: 1788284739657-2-1787408944712-target
@@ -370,8 +326,6 @@ workflow:
     - data:
         isInIteration: false
         isInLoop: false
-        iteration_id: null
-        loop_id: null
         sourceType: template-transform
         targetType: variable-aggregator
       id: 1788285001970-source-1788285626784-target
@@ -384,8 +338,6 @@ workflow:
     - data:
         isInIteration: false
         isInLoop: false
-        iteration_id: null
-        loop_id: null
         sourceType: variable-aggregator
         targetType: end
       id: 1788285626784-source-1788283876218-target
@@ -434,7 +386,7 @@ workflow:
           required: false
           type: paragraph
           variable: blockquote
-      height: 214
+      height: 215
       id: '1786730582147'
       position:
         x: -183.51038534873663
@@ -1512,7 +1464,7 @@ workflow:
         type: question-classifier
         vision:
           enabled: false
-      height: 261
+      height: 262
       id: '1787939099211'
       position:
         x: 3004.275138480006
@@ -1550,7 +1502,7 @@ workflow:
         selected: false
         title: Knowledge Retrieval
         type: knowledge-retrieval
-      height: 52
+      height: 90
       id: '1788195984130'
       position:
         x: 1325.0953082931708
@@ -1581,7 +1533,7 @@ workflow:
         title: Ticket ID aggregator
         type: variable-aggregator
         variables: []
-      height: 134
+      height: 135
       id: '1788196953658'
       position:
         x: 4014.223471205665
@@ -1715,11 +1667,11 @@ workflow:
         - '1786730582147'
         - request_text
         selected: false
-        title: Detect intend
+        title: Detect intent
         type: question-classifier
         vision:
           enabled: false
-      height: 219
+      height: 220
       id: '1788284739657'
       position:
         x: 261.409701663232
@@ -1771,7 +1723,7 @@ workflow:
         title: Reply aggregator
         type: variable-aggregator
         variables: []
-      height: 134
+      height: 135
       id: '1788285626784'
       position:
         x: 4929.700841262804
@@ -1786,7 +1738,7 @@ workflow:
       width: 242
       zIndex: 0
     viewport:
-      x: 144.21764942751315
-      y: 202.45762998195053
-      zoom: 0.7447584946467011
+      x: 151.13860410225845
+      y: 197.63355162926715
+      zoom: 0.32928642859312424
   rag_pipeline_variables: []
