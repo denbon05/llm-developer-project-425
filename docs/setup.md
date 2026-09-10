@@ -78,11 +78,12 @@ Do not commit `.env`, `dify/.env`, provider keys, or secrets in DSL.
    `DIFY_DATASETS_API_KEY`); never in DSL; do not include `Bearer` in the
    key value. Then `make eval`. The evaluator requires exactly one KB
    named `employee-helpdesk`.
-9. **Yandex (one-time).** OpenAI-API-compatible tile; API Base
+9. **Yandex (optional).** OpenAI-API-compatible tile; API Base
    `https://ai.api.cloud.yandex.net/v1`; Chat mode; credentials only in
    Dify's store; embedding stays local Ollama. Role
    `ai.languageModels.user`; API key scope `yc.ai.languageModels.execute`.
-   Copy the model string from Yandex Cloud AI Studio.
+   Copy the model string from Yandex Cloud AI Studio. Skip this step if
+   you are using a different LLM provider.
 
 ## Ports (loopback only)
 

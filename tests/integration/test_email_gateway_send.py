@@ -50,7 +50,7 @@ async def test_send_email_formats_tickets_array_to_operator(
     greenmail: GreenMailEndpoints,
     gateway_settings: Settings,
 ) -> None:
-    """Non-empty tickets list SMTP-sends a formatted digest to OPERATOR_EMAIL."""
+    """Non-empty tickets list SMTP-sends a digest to OPERATOR_EMAIL."""
     app = create_app(gateway_settings)
     async with AsyncClient(
         transport=ASGITransport(app=app),

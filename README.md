@@ -1,74 +1,47 @@
-# Dify Help Desk
+# Employee Helpdesk
 
+[![CI](https://github.com/denbon05/llm-developer-project-425/actions/workflows/ci.yml/badge.svg)](https://github.com/denbon05/llm-developer-project-425/actions/workflows/ci.yml)
 
-[![Actions Status](https://github.com/denbon05/llm-developer-project-425/actions/workflows/hexlet-check.yml/badge.svg)](https://github.com/denbon05/llm-developer-project-425/actions)
+An LLM-powered internal email help-desk assistant. Employees email a support
+address; the system answers from a knowledge base or — when the knowledge
+base cannot answer — opens a tracked support ticket and admits the gap.
+Stale open tickets escalate automatically and an operator receives a digest.
+There is no human-facing UI; the channel is plain email (IMAP/SMTP).
 
+**Technically interesting:**
+- PII is one-way masked before content leaves the gateway (before Dify, before
+  ticket storage). Raw employee text never reaches the LLM or the database.
+- Trust seams are explicit: employee mail, retrieved passages, and model output
+  are untrusted data. Governing instructions, MCP tool schemas, and citation
+  filenames are trusted. Untrusted text cannot change routing or authorization.
+- Routing is capability-derived, not prompt-inferred: the Dify workflow decides
+  create/append/skip via node wiring, not model free-text output.
+- The ticketing service exposes both an MCP interface (for Dify tool nodes) and
+  a private HTTP interface (for the scheduled escalation trigger).
+- A deterministic test suite (unit + integration + contract seams + golden
+  retrieval eval) runs against a fake Dify contract and a real GreenMail via
+  Testcontainers — no paid model calls in CI.
+
+## Stack
+
+| Layer | Technology |
+| --- | --- |
+| Email transport | GreenMail (local), generic IMAP/SMTP |
+| LLM orchestration | Dify (self-hosted) |
+| LLM provider | Yandex Cloud AI Studio (optional; swap any OpenAI-compatible) |
+| Embeddings | Ollama + `ibm/granite-embedding:30m` (local) |
+| Vector store | Weaviate (persistent, embedded in Dify stack) |
+| Ticketing / MCP | FastAPI + MCP server (Python) |
+| Database | PostgreSQL (Alembic migrations) |
+| Privacy | One-way deterministic PII masking (`src/privacy`) |
+| Container orchestration | Docker Compose v2 (two pinned projects) |
 
 ## Send a test email
 
-There is no public mailbox. Mail is local GreenMail. The inbox is
-available only while the app stack is running (`make app-stack-up`).
-
-1. One-time machine setup (skip if already done): `make bootstrap`, then
-   the Studio checklist in [docs/setup.md](docs/setup.md) (import the
-   workflows, API key, knowledge base, Yandex).
-2. Start the stacks and leave them running:
-
-   ```bash
-   make dify-stack-up    # terminal 1
-   make app-stack-up     # terminal 2
-   ```
-
-3. In a mail client, add the **employee** account (not support). Use
-   IMAP, not POP. If the client auto-picks SSL or STARTTLS, turn that
-   off; GreenMail is plain localhost. If login fails, use username
-   `employee1` (local part), not the full address.
-
-   | Setting | Value |
-   | --- | --- |
-   | Account type | IMAP |
-   | Email address | `employee1@example.test` |
-   | Username | `employee1` |
-   | Password | `employee1-pass` |
-   | Incoming host | `127.0.0.1` |
-   | Incoming port | `3143` |
-   | Incoming encryption | None (no SSL, no STARTTLS) |
-   | Incoming authentication | Normal password |
-   | Outgoing host | `127.0.0.1` |
-   | Outgoing port | `3025` |
-   | Outgoing encryption | None (no SSL, no STARTTLS) |
-   | Outgoing authentication | Normal password (same username and password) |
-
-4. Compose **To:** `support@example.test`. Send a short English question
-   (for example guest Wi-Fi). Do not log in as `support@example.test`;
-   that mailbox is the gateway inbox.
-5. Wait about one minute (poll interval). The reply arrives in the same
-   employee inbox.
-
-To see an escalation digest, add `operator@example.test` the same way
-(username `operator`, password `operator-pass`, same hosts and ports).
-That account is only for reading digest mail, not for sending employee
-questions.
-
-Recorded run of that path: [docs/screenshots](docs/screenshots/README.md).
+See [Platform setup](docs/setup.md) — the GreenMail accounts and port
+list are in that document.
 
 ## Dev
-
-An email help-desk assistant for employees. A knowledge hit with no
-non-`closed` ticket is emailed with citations (no ticket, no `messages`
-row). A knowledge gap with no non-`closed` ticket opens a ticket and
-records the inbound mail; the reply admits the miss. A non-`closed`
-ticket (`open` or `escalated`) always appends user + agent and still
-retrieves. Stale `open` tickets become `escalated` over scheduled HTTP,
-and the operator receives an escalation digest email. There is no
-operator UI.
-
-Trusted: governing instructions, MCP tool schemas, repository citation
-filenames, digest `subject`, and `OPERATOR_EMAIL`.
-
-Untrusted: employee mail (headers, HTML, body), retrieved knowledge,
-model output, and ticket `text`. Untrusted text must not be copied into
-trusted instructions, routing, or authorization.
 
 Host tools: `uv`, plus Docker Desktop (Compose v2) on `PATH`. Platform
 setup: [docs/setup.md](docs/setup.md).

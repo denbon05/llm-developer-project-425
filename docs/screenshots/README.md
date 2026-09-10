@@ -1,8 +1,7 @@
 # Demo screenshots
 
 Local GreenMail and Thunderbird. The mailbox is up only while
-`make app-stack-up` is running. How to send mail: the root
-[README](../../README.md).
+`make app-stack-up` is running. How to send mail: [Platform setup](../setup.md).
 
 1. Employee question (knowledge hit).
 

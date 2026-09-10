@@ -3,24 +3,24 @@
 # Start Dify first (creates helpdesk_private); app stack joins it as external.
 # Docker Compose v2 only (Docker Desktop). Podman is not supported.
 
-ifeq ($(shell command -v docker 2>/dev/null),)
-$(error docker not found in PATH; install Docker Desktop)
-endif
-
 # --env-file loads that file for YAML ${VAR} interpolation.
 # Service env_file (see dify/compose.yml) injects vars into containers — different step.
 DIFY_COMPOSE := docker compose -f dify/compose.yml --env-file dify/.env
 APP_COMPOSE := docker compose -f compose.yml
 
+DOCKER_CHECK = @command -v docker >/dev/null 2>&1 || (echo "docker not found in PATH; install Docker Desktop" && exit 1)
+
 # Drive Docker base image tag from .python-version (see Dockerfile ARG).
 PYTHON_VERSION := $(shell tr -d '[:space:]' < .python-version)
 export PYTHON_VERSION
 
-.PHONY: help bootstrap test eval format migrate-create migrate-up migrate-down
+.PHONY: help bootstrap install lint test eval format migrate-create migrate-up migrate-down
 
 help:
 	@echo "Application stack (two-terminal foreground up; includes email-gateway):"
 	@echo "  make bootstrap              Env files + uv sync --all-extras; print start order"
+	@echo "  make install                uv sync --all-extras (no env copy)"
+	@echo "  make lint                   Ruff check (src + tests)"
 	@echo "  make dify-stack-up          Start Dify (creates helpdesk_private; ollama-pull uses OLLAMA_EMBEDDING_MODEL)"
 	@echo "  make app-stack-up           Start app stack: GreenMail + helpdesk-db + ticketing + email-gateway"
 	@echo "  make dify-stack-down        Stop Dify platform"
@@ -36,6 +36,7 @@ help:
 	@echo "  Compose: docker compose (v2; Docker Desktop)"
 
 bootstrap: dify-env app-env
+	$(DOCKER_CHECK)
 	uv sync --all-extras
 	@echo "Env files and local .venv ready."
 	@echo "Terminal 1: make dify-stack-up   # creates helpdesk_private; start first"
@@ -46,16 +47,26 @@ bootstrap: dify-env app-env
 	@echo "Email gateway: Compose service email-gateway (polls GreenMail; Dify via nginx)"
 
 dify-stack-up: dify-env
+	$(DOCKER_CHECK)
 	$(DIFY_COMPOSE) up
 
 dify-stack-down:
+	$(DOCKER_CHECK)
 	$(DIFY_COMPOSE) down
 
 app-stack-up: app-env
+	$(DOCKER_CHECK)
 	$(APP_COMPOSE) up
 
 app-stack-down:
+	$(DOCKER_CHECK)
 	$(APP_COMPOSE) down
+
+install:
+	uv sync --all-extras
+
+lint:
+	uv run ruff check src tests
 
 test:
 	uv run pytest
