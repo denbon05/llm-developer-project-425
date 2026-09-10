@@ -1,6 +1,6 @@
 # Employee Helpdesk
 
-[![CI](https://github.com/denbon05/llm-developer-project-425/actions/workflows/ci.yml/badge.svg)](https://github.com/denbon05/llm-developer-project-425/actions/workflows/ci.yml)
+[![CI](https://github.com/denbon05/llm-developer-project-425/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/denbon05/llm-developer-project-425/actions/workflows/ci.yml)
 
 An LLM-powered internal email help-desk assistant. Employees email a support
 address; the system answers from a knowledge base or — when the knowledge
